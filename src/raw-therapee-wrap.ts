@@ -1,4 +1,4 @@
-import { execa } from "execa";
+import spawn from "nano-spawn";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
@@ -40,7 +40,7 @@ export async function convertDngToImage({
     input,
   });
   try {
-    await execa("rawtherapee-cli", cliArguments);
+    await spawn("rawtherapee-cli", cliArguments);
   } catch (error) {
     throw new Error(
       `Conversion failed: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -90,7 +90,7 @@ export async function convertDngToImageWithPP3({
     input,
   });
   try {
-    await execa("rawtherapee-cli", cliArguments);
+    await spawn("rawtherapee-cli", cliArguments);
   } catch (error) {
     throw new Error(
       `Conversion failed: ${error instanceof Error ? error.message : "Unknown error"}`,

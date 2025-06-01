@@ -7,36 +7,66 @@ export interface SearchReplaceBlock {
   replace: string;
 }
 
+interface ParseState {
+  isInSearch: boolean;
+  isInReplace: boolean;
+  currentBlock: { search: string[]; replace: string[] };
+}
+
+function createInitialState(): ParseState {
+  return {
+    isInSearch: false,
+    isInReplace: false,
+    currentBlock: { search: [], replace: [] },
+  };
+}
+
+function handleSearchStart(state: ParseState): void {
+  state.isInSearch = true;
+  state.isInReplace = false;
+  state.currentBlock = { search: [], replace: [] };
+}
+
+function handleSeparator(state: ParseState): void {
+  state.isInSearch = false;
+  state.isInReplace = true;
+}
+
+function handleReplaceEnd(
+  state: ParseState,
+  blocks: SearchReplaceBlock[],
+): void {
+  state.isInSearch = false;
+  state.isInReplace = false;
+  if (
+    state.currentBlock.search.length > 0 &&
+    state.currentBlock.replace.length > 0
+  ) {
+    blocks.push({
+      search: state.currentBlock.search.join("\n"),
+      replace: state.currentBlock.replace.join("\n"),
+    });
+  }
+}
+
+function handleContentLine(line: string, state: ParseState): void {
+  if (state.isInSearch) state.currentBlock.search.push(line);
+  if (state.isInReplace) state.currentBlock.replace.push(line);
+}
+
 export function parseSearchReplaceBlocks(text: string): SearchReplaceBlock[] {
   const blocks: SearchReplaceBlock[] = [];
-  let currentBlock: { search: string[]; replace: string[] } = {
-    search: [],
-    replace: [],
-  };
-
-  let isInSearch = false;
-  let isInReplace = false;
+  const state = createInitialState();
 
   for (const line of text.split("\n")) {
     if (line.startsWith("<<<<<<< SEARCH")) {
-      isInSearch = true;
-      isInReplace = false;
-      currentBlock = { search: [], replace: [] };
+      handleSearchStart(state);
     } else if (line.startsWith("=======")) {
-      isInSearch = false;
-      isInReplace = true;
+      handleSeparator(state);
     } else if (line.startsWith(">>>>>>> REPLACE")) {
-      isInSearch = false;
-      isInReplace = false;
-      if (currentBlock.search.length > 0 && currentBlock.replace.length > 0) {
-        blocks.push({
-          search: currentBlock.search.join("\n"),
-          replace: currentBlock.replace.join("\n"),
-        });
-      }
+      handleReplaceEnd(state, blocks);
     } else {
-      if (isInSearch) currentBlock.search.push(line);
-      if (isInReplace) currentBlock.replace.push(line);
+      handleContentLine(line, state);
     }
   }
 

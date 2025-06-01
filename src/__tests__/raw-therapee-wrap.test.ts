@@ -15,9 +15,9 @@ vi.mock("../raw-therapee-wrap.js", async () => {
 const { convertDngToImage, convertDngToImageWithPP3 } = rawTherapeeModule;
 
 // Mock dependencies
-vi.mock("execa", () => {
+vi.mock("nano-spawn", () => {
   return {
-    execa: vi.fn(),
+    spawn: vi.fn(),
   };
 });
 
