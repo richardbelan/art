@@ -19,6 +19,7 @@ export interface P3GenerationParameters {
   preset?: string;
   sections?: string[];
   previewQuality?: number;
+  maxRetries?: number;
 }
 
 export interface PreviewSettings {

@@ -180,6 +180,7 @@ export async function generatePP3FromRawImage({
     "Directional Pyramid Denoising",
   ],
   previewQuality = PREVIEW_SETTINGS.quality,
+  maxRetries = 2,
 }: P3GenerationParameters): Promise<string> {
   // Validate input file extension
   const extension = inputPath.toLowerCase().slice(inputPath.lastIndexOf("."));
@@ -271,6 +272,7 @@ export async function generatePP3FromRawImage({
             ],
           },
         ],
+        maxRetries,
       });
     } catch (error: unknown) {
       throw new Error(

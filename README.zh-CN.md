@@ -172,6 +172,7 @@ ai-pp3 input.dng \
 - `--base <路径>`: 用于增量优化的基础PP3文件
 - `--sections <列表>`: 要处理的PP3模块列表（例如：`Exposure,ColorToning`）
 - `--preview-quality <数值>`: 预览图JPEG质量（1-100，默认：85）
+- `--max-retries <数值>`: AI API调用的最大重试次数（默认：2）
 - `-v, --verbose`: 显示详细处理日志
 - `-k, --keep-preview`: 处理后保留预览图
 

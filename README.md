@@ -160,6 +160,7 @@ ai-pp3 input.dng \
 - `--base <path>`: Base PP3 file for incremental improvements
 - `--sections <list>`: Comma-separated PP3 sections to process (e.g. `Exposure,ColorToning`)
 - `--preview-quality <n>`: Preview JPEG quality (1-100, default: 85)
+- `--max-retries <n>`: Maximum number of retries for AI API calls (default: 2)
 - `-v, --verbose`: Enable detailed processing logs
 - `-k, --keep-preview`: Retain preview JPEG after processing
 

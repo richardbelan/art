@@ -23,6 +23,7 @@ interface ProcessImageOptions {
   compression?: "z" | "none";
   bitDepth?: 8 | 16;
   previewQuality?: number;
+  maxRetries?: number;
 }
 
 export async function processImage(
@@ -61,6 +62,7 @@ export async function processImage(
     preset: options.preset,
     sections: options.sections?.split(",").filter((s) => s.trim() !== ""),
     previewQuality: options.previewQuality,
+    maxRetries: options.maxRetries,
   });
 
   if (!pp3Content) {
@@ -138,6 +140,17 @@ program
     (value) => value.split(","),
   )
   .option("--base <path>", "Base PP3 file to improve upon")
+  .option(
+    "--max-retries <n>",
+    "Maximum number of retries for AI API calls",
+    (value) => {
+      const retries = Number.parseInt(value, 10);
+      if (Number.isNaN(retries) || retries < 0) {
+        throw new Error("Max retries must be a non-negative integer");
+      }
+      return retries;
+    },
+  )
   .action(async (input: string, options: ProcessImageOptions) => {
     try {
       await processImage(input, options);
