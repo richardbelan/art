@@ -153,4 +153,47 @@ param2=value2`;
       expect(result.sectionOrders).toHaveLength(0);
     });
   });
+
+  describe("splitContentIntoSections additional tests", () => {
+    it("should handle single section", () => {
+      const content = `[Section1]
+param1=value1
+param2=value2`;
+
+      const result = splitContentIntoSections(content);
+
+      expect(result.sections).toHaveLength(1);
+      expect(result.sectionOrders).toEqual(["Section1"]);
+      expect(result.sections[0]).toBe(
+        "[Section1]\nparam1=value1\nparam2=value2",
+      );
+    });
+
+    it("should handle whitespace-only content", () => {
+      const content = "   \n  \t  \n  ";
+
+      const result = splitContentIntoSections(content);
+
+      expect(result.sections).toHaveLength(0);
+      expect(result.sectionOrders).toHaveLength(0);
+    });
+
+    it("should handle sections with empty lines", () => {
+      const content = `[Section1]
+param1=value1
+
+param2=value2
+
+[Section2]
+
+param3=value3`;
+
+      const result = splitContentIntoSections(content);
+
+      expect(result.sections).toHaveLength(2);
+      expect(result.sections[0]).toContain("param1=value1");
+      expect(result.sections[0]).toContain("param2=value2");
+      expect(result.sections[1]).toContain("param3=value3");
+    });
+  });
 });

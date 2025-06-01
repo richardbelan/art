@@ -171,10 +171,11 @@ ai-pp3 input.dng \
 
 - `--base <路径>`: 用于增量优化的基础PP3文件
 - `--sections <列表>`: 要处理的PP3模块列表（例如：`Exposure,ColorToning`）
-- `--preview-quality <数值>`: 预览图JPEG质量（1-100，默认：85）
+- `--preview-quality <数值>`: 预览图质量（1-100，仅JPEG，默认：85）
+- `--preview-format <格式>`: 预览图格式（`jpeg` 或 `png`，默认：`jpeg`）
 - `--max-retries <数值>`: AI API调用的最大重试次数（默认：2）
 - `-v, --verbose`: 显示详细处理日志
-- `-k, --keep-preview`: 处理后保留预览图
+- `-k, --keep-preview`: 处理后保留预览文件
 
 ### 使用示例
 
@@ -187,6 +188,9 @@ ai-pp3 input.dng --provider anthropic --model claude-3-opus-20240229
 
 # 限定模块处理
 ai-pp3 input.dng --sections Exposure,Detail --pp3-only
+
+# 使用PNG预览进行AI分析（对某些模型效果更好）
+ai-pp3 input.dng --preview-format png --keep-preview
 ```
 
 ## 发展路线

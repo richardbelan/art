@@ -10,9 +10,17 @@ import { PREVIEW_SETTINGS } from "./constants.js";
 import { validateFileAccess, handleFileError } from "./utils/validation.js";
 import { handleProviderSetup } from "./utils/ai-provider.js";
 
-import { PreviewImageParameters, P3GenerationParameters } from "./types.js";
+import {
+  PreviewImageParameters,
+  P3GenerationParameters,
+  GenerationResult,
+  MultiGenerationResult,
+  ImageFormat,
+  TiffCompression,
+  BitDepth,
+} from "./types.js";
 import { parseSearchReplaceBlocks } from "./pp3-parser.js";
-import { getPromptByPreset } from "./prompts.js";
+import { getPromptByPreset, EVALUATION_PROMPT } from "./prompts.js";
 
 export interface SectionResult {
   sections: string[];
@@ -318,6 +326,7 @@ async function createPreviewImage({
   previewPath,
   basePP3Path,
   quality,
+  format = "jpeg",
   verbose,
 }: PreviewImageParameters) {
   try {
@@ -326,13 +335,13 @@ async function createPreviewImage({
           input: inputPath,
           output: previewPath,
           pp3Path: basePP3Path,
-          format: "jpeg",
+          format,
           quality,
         })
       : convertDngToImage({
           input: inputPath,
           output: previewPath,
-          format: "jpeg",
+          format,
           quality,
         }));
     if (verbose) console.log(`Preview file created at ${previewPath}`);
@@ -348,6 +357,7 @@ async function setupPreviewAndValidation(
   previewPath: string,
   basePP3Path: string | undefined,
   previewQuality: number,
+  previewFormat: "jpeg" | "png",
   verbose: boolean,
 ): Promise<{ previewCreated: boolean; finalBasePP3Path: string }> {
   await validateFileAccess(inputPath, "read");
@@ -360,6 +370,7 @@ async function setupPreviewAndValidation(
     previewPath,
     basePP3Path,
     quality: previewQuality,
+    format: previewFormat,
     verbose,
   });
 
@@ -423,6 +434,326 @@ async function processAIGeneration(
   );
 }
 
+async function prepareImageContents(
+  generationResults: GenerationResult[],
+  verbose: boolean,
+): Promise<
+  ({ type: "text"; text: string } | { type: "image"; image: Buffer })[]
+> {
+  const imageContents: (
+    | { type: "text"; text: string }
+    | { type: "image"; image: Buffer }
+  )[] = [{ type: "text", text: EVALUATION_PROMPT }];
+
+  for (const [index, result] of generationResults.entries()) {
+    try {
+      const imageData = await fs.promises.readFile(result.processedImagePath);
+      imageContents.push(
+        { type: "text", text: `\n\nGeneration ${String(index + 1)}:` },
+        { type: "image", image: imageData },
+      );
+    } catch (error) {
+      if (verbose) {
+        console.warn(
+          `Failed to read processed image ${result.processedImagePath}:`,
+          error,
+        );
+      }
+    }
+  }
+
+  return imageContents;
+}
+
+function parseBestGenerationIndex(
+  responseText: string,
+  generationResults: GenerationResult[],
+): number {
+  const bestGenerationMatch = /BEST_GENERATION:\s*(\d+)/i.exec(responseText);
+  return bestGenerationMatch
+    ? Math.max(
+        0,
+        Math.min(
+          Number.parseInt(bestGenerationMatch[1], 10) - 1,
+          generationResults.length - 1,
+        ),
+      )
+    : 0;
+}
+
+async function evaluateGenerations(
+  generationResults: GenerationResult[],
+  providerName: string,
+  visionModel: string,
+  maxRetries: number,
+  verbose: boolean,
+): Promise<{ bestIndex: number; evaluationReason: string }> {
+  if (generationResults.length <= 1) {
+    return { bestIndex: 0, evaluationReason: "Only one generation available" };
+  }
+
+  const aiProvider = handleProviderSetup(providerName, visionModel);
+  const imageContents = await prepareImageContents(generationResults, verbose);
+
+  if (verbose) {
+    console.log(
+      `Evaluating ${String(generationResults.length)} generations with AI...`,
+    );
+  }
+
+  try {
+    const response = await generateText({
+      model: aiProvider,
+      messages: [
+        {
+          role: "user",
+          content: imageContents,
+        },
+      ],
+      maxRetries,
+    });
+
+    const responseText =
+      typeof response === "string" ? response : response.text;
+    const bestIndex = parseBestGenerationIndex(responseText, generationResults);
+
+    if (verbose) {
+      console.log(
+        `AI selected generation ${String(bestIndex + 1)} as the best`,
+      );
+    }
+
+    return {
+      bestIndex,
+      evaluationReason: responseText,
+    };
+  } catch (error) {
+    if (verbose) {
+      console.warn("AI evaluation failed, using first generation:", error);
+    }
+    return {
+      bestIndex: 0,
+      evaluationReason: `AI evaluation failed: ${error instanceof Error ? error.message : "Unknown error"}. Using first generation as fallback.`,
+    };
+  }
+}
+
+async function generateMultiplePP3Profiles(
+  inputPath: string,
+  basePP3Path: string,
+  sections: string[],
+  providerName: string,
+  visionModel: string,
+  prompt: string | undefined,
+  preset: string,
+  maxRetries: number,
+  verbose: boolean,
+  generations: number,
+  previewPath: string,
+  outputFormat: ImageFormat,
+  outputQuality?: number,
+  tiffCompression?: TiffCompression,
+  bitDepth?: BitDepth,
+): Promise<MultiGenerationResult> {
+  const generationResults: GenerationResult[] = [];
+  const extension = inputPath.toLowerCase().slice(inputPath.lastIndexOf("."));
+  const baseName = basename(inputPath, extension);
+  const directoryName = dirname(inputPath);
+
+  if (verbose) {
+    console.log(`Generating ${String(generations)} different PP3 profiles...`);
+  }
+
+  // Generate multiple PP3 profiles
+  for (let index = 0; index < generations; index++) {
+    if (verbose) {
+      console.log(
+        `Generating PP3 profile ${String(index + 1)}/${String(generations)}...`,
+      );
+    }
+
+    try {
+      const pp3Content = await processAIGeneration(
+        previewPath,
+        basePP3Path,
+        sections,
+        providerName,
+        visionModel,
+        prompt,
+        preset,
+        maxRetries,
+        verbose,
+      );
+
+      const pp3Path = join(
+        directoryName,
+        `${baseName}_gen${String(index + 1)}.pp3`,
+      );
+      await fs.promises.writeFile(pp3Path, pp3Content);
+
+      // Process image with this PP3
+      const processedImagePath = join(
+        directoryName,
+        `${baseName}_gen${String(index + 1)}_processed.${outputFormat}`,
+      );
+      await convertDngToImageWithPP3({
+        input: inputPath,
+        output: processedImagePath,
+        pp3Path,
+        format: outputFormat,
+        quality: outputQuality,
+        tiffCompression,
+        bitDepth,
+      });
+
+      generationResults.push({
+        pp3Content,
+        pp3Path,
+        processedImagePath,
+        generationIndex: index,
+      });
+
+      if (verbose) {
+        console.log(
+          `Generated PP3 profile ${String(index + 1)} and processed image`,
+        );
+      }
+    } catch (error) {
+      if (verbose) {
+        console.warn(
+          `Failed to generate PP3 profile ${String(index + 1)}:`,
+          error,
+        );
+      }
+      // Continue with other generations even if one fails
+    }
+  }
+
+  if (generationResults.length === 0) {
+    throw new Error("Failed to generate any PP3 profiles");
+  }
+
+  // Use AI to evaluate and select the best result
+  const { bestIndex, evaluationReason } = await evaluateGenerations(
+    generationResults,
+    providerName,
+    visionModel,
+    maxRetries,
+    verbose,
+  );
+
+  return {
+    bestResult: generationResults[bestIndex],
+    allResults: generationResults,
+    evaluationReason,
+  };
+}
+
+export async function generateMultiPP3FromRawImage({
+  inputPath,
+  basePP3Path,
+  providerName = "openai",
+  visionModel = "gpt-4-vision-preview",
+  verbose = false,
+  keepPreview = false,
+  prompt,
+  preset = "aggressive",
+  sections = [
+    "Exposure",
+    "Retinex",
+    "Local Contrast",
+    "Wavlet",
+    "Vibrance",
+    "White Balance",
+    "Color appearance",
+    "Shadows & Highlights",
+    "RGB Curves",
+    "ColorToning",
+    "ToneEqualizer",
+    "Sharpening",
+    "Defringing",
+    "Dehaze",
+    "Directional Pyramid Denoising",
+  ],
+  previewQuality = PREVIEW_SETTINGS.quality,
+  previewFormat = "jpeg",
+  maxRetries = 2,
+  generations = 3,
+  outputFormat = "jpeg" as ImageFormat,
+  outputQuality = 100,
+  tiffCompression,
+  bitDepth = 16 as BitDepth,
+}: P3GenerationParameters & {
+  outputFormat?: ImageFormat;
+  outputQuality?: number;
+  tiffCompression?: TiffCompression;
+  bitDepth?: BitDepth;
+}): Promise<MultiGenerationResult> {
+  const extension = inputPath.toLowerCase().slice(inputPath.lastIndexOf("."));
+  const previewExtension = previewFormat === "png" ? "png" : "jpg";
+  const previewPath = join(
+    dirname(inputPath),
+    `${basename(inputPath, extension)}_preview.${previewExtension}`,
+  );
+
+  if (verbose) {
+    console.log(
+      `Analyzing image ${inputPath} with ${providerName} model ${visionModel} for ${String(generations)} generations`,
+    );
+  }
+
+  let previewCreated = false;
+
+  try {
+    const setup = await setupPreviewAndValidation(
+      inputPath,
+      previewPath,
+      basePP3Path,
+      previewQuality,
+      previewFormat,
+      verbose,
+    );
+    previewCreated = setup.previewCreated;
+
+    return await generateMultiplePP3Profiles(
+      inputPath,
+      setup.finalBasePP3Path,
+      sections,
+      providerName,
+      visionModel,
+      prompt,
+      preset,
+      maxRetries,
+      verbose,
+      generations,
+      previewPath,
+      outputFormat,
+      outputQuality,
+      tiffCompression,
+      bitDepth,
+    );
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (verbose) {
+        console.error("Error during multi-generation PP3 creation:");
+        console.error(error.message);
+        if (error.stack) console.error(error.stack);
+      }
+      throw error;
+    }
+    throw new Error(
+      `Unknown error during multi-generation PP3 creation: ${String(error)}`,
+    );
+  } finally {
+    await cleanupPreviewFiles(
+      previewPath,
+      previewCreated,
+      keepPreview,
+      verbose,
+    );
+  }
+}
+
 export async function generatePP3FromRawImage({
   inputPath,
   basePP3Path,
@@ -450,12 +781,14 @@ export async function generatePP3FromRawImage({
     "Directional Pyramid Denoising",
   ],
   previewQuality = PREVIEW_SETTINGS.quality,
+  previewFormat = "jpeg",
   maxRetries = 2,
 }: P3GenerationParameters): Promise<string> {
   const extension = inputPath.toLowerCase().slice(inputPath.lastIndexOf("."));
+  const previewExtension = previewFormat === "png" ? "png" : "jpg";
   const previewPath = join(
     dirname(inputPath),
-    `${basename(inputPath, extension)}_preview.jpg`,
+    `${basename(inputPath, extension)}_preview.${previewExtension}`,
   );
 
   if (verbose) {
@@ -472,6 +805,7 @@ export async function generatePP3FromRawImage({
       previewPath,
       basePP3Path,
       previewQuality,
+      previewFormat,
       verbose,
     );
     previewCreated = setup.previewCreated;

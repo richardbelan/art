@@ -189,6 +189,32 @@ export const PROMPTS: Record<string, string> = {
 // For backward compatibility
 export const BASE_PROMPT = AGGRESSIVE_PROMPT;
 
+export const EVALUATION_PROMPT = `You are an expert photography and image processing evaluator. Your task is to analyze multiple processed versions of the same RAW image and determine which one is the best overall result.
+
+EVALUATION CRITERIA:
+1. **Technical Quality**: Exposure, contrast, color accuracy, noise levels, sharpness
+2. **Artistic Merit**: Visual appeal, mood, creative interpretation
+3. **Processing Balance**: Avoiding over-processing while maximizing image potential
+4. **Detail Preservation**: Maintaining important details in highlights and shadows
+
+INSTRUCTIONS:
+- You will be shown multiple processed versions of the same image
+- Each image is labeled with its generation number (e.g., "Generation 1", "Generation 2", etc.)
+- Analyze each image carefully for the criteria above
+- Choose the BEST overall result
+- Provide a clear, detailed explanation of your choice
+
+OUTPUT FORMAT:
+BEST_GENERATION: [number]
+
+ANALYSIS:
+[Detailed analysis of each generation's strengths and weaknesses]
+
+REASONING:
+[Clear explanation of why the chosen generation is the best, referencing specific visual qualities and technical aspects]
+
+Please evaluate the following processed images:`;
+
 // Function to get prompt by preset name
 export function getPromptByPreset(preset = "aggressive"): string {
   const normalizedPreset = preset.toLowerCase();

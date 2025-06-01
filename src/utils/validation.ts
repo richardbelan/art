@@ -49,10 +49,12 @@ export function handleFileError(
     if (error.code === "ENOENT") {
       throw new Error(`File not found during ${operation}: ${filePath}`);
     } else if (error.code === "EACCES") {
-      throw new Error(`Permission denied ${operation}ing file: ${filePath}`);
+      throw new Error(
+        `Permission denied ${operation === "read" ? "reading" : "writing"} file: ${filePath}`,
+      );
     }
   }
   throw new Error(
-    `Error ${operation}ing file ${filePath}: ${error instanceof Error ? error.message : "Unknown error"}`,
+    `Error ${operation === "read" ? "reading" : "writing"} file ${filePath}: ${error instanceof Error ? error.message : "Unknown error"}`,
   );
 }

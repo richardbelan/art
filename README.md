@@ -13,6 +13,7 @@ AI-PP3 is an advanced command-line tool that combines multimodal AI analysis wit
 See [example documentation](examples/example.md) for practical usage scenarios.
 
 ## Table of Contents
+
 - [Key Features](#key-features)
 - [Compatibility](#compatibility)
 - [Installation](#installation)
@@ -25,6 +26,7 @@ See [example documentation](examples/example.md) for practical usage scenarios.
 - [License](#license)
 
 ## Key Features
+
 - 🖼️ AI-driven analysis of RAW files (DNG/NEF/CR2/ARW)
 - ⚡ Batch PP3 creation with consistent processing parameters
 - 📝 Customizable development settings through natural language prompts
@@ -33,7 +35,9 @@ See [example documentation](examples/example.md) for practical usage scenarios.
 - 🔍 Interactive preview generation with quality controls
 
 ## Compatibility
+
 ### Supported Formats
+
 - **RAW Files**: All RawTherapee-supported formats including:
   - Common: CR2/CR3, NEF, ARW, RAF, DNG
   - Specialized: IIQ, PEF, RW2, ORF
@@ -43,6 +47,7 @@ See [example documentation](examples/example.md) for practical usage scenarios.
   - PNG (8/16-bit)
 
 ### System Requirements
+
 - Node.js ≥18
 - RawTherapee ≥5.8 (CLI required)
 - API Key for cloud AI _or_ local GPU for self-hosted models
@@ -58,7 +63,9 @@ ai-pp3 --version
 ```
 
 ## AI Configuration
+
 ### Provider Setup
+
 ```bash
 # Environment variables (.env file)
 OPENAI_API_KEY=your_key               # Default provider
@@ -67,6 +74,7 @@ GOOGLE_GENERATIVE_AI_API_KEY=your_key # Gemini
 ```
 
 ### Model Selection
+
 ```bash
 # Cloud models
 ai-pp3 input.dng --provider anthropic --model claude-3-opus-20240229
@@ -76,6 +84,7 @@ ai-pp3 input.dng --provider openai-compatible --model llama3:8b-instruct-q5_K_M
 ```
 
 ## Basic Usage
+
 ```bash
 # Basic processing with defaults
 ai-pp3 input.dng -o output.jpg
@@ -120,7 +129,9 @@ ai-pp3 input.dng --base existing.pp3 --preview-quality 85
 ```
 
 ## Advanced Features
+
 ### Batch Processing
+
 ```bash
 # Parallel processing (GNU Parallel)
 ls *.DNG | parallel -j8 ai-pp3 {} -o {.}.jpg
@@ -130,6 +141,7 @@ find . -name '*.NEF' -exec ai-pp3 {} --tiff --compression z \;
 ```
 
 ### Custom Workflows
+
 ```bash
 # Multi-model comparison
 ai-pp3 input.dng \
@@ -137,19 +149,48 @@ ai-pp3 input.dng \
   --base neutral.pp3 --keep-preview
 ```
 
+### Multi-Generation Processing
+
+The `--generations` option enables AI-powered comparison of multiple PP3 profiles:
+
+```bash
+# Generate 3 different approaches and let AI select the best
+ai-pp3 input.dng --generations 3
+
+# Advanced multi-generation with custom settings
+ai-pp3 input.dng \
+  --generations 5 \
+  --preset creative \
+  --provider anthropic \
+  --model claude-3-opus-20240229 \
+  --verbose
+```
+
+**How it works:**
+
+1. Generates multiple PP3 profiles using the same base settings
+2. Processes the RAW image with each profile
+3. Uses AI vision models to evaluate and compare all results
+4. Automatically selects the best processed image
+5. Saves the winning PP3 profile and final image
+6. Cleans up intermediate files (unless `--verbose` is used)
+
 ## CLI Options
 
 ### Core Parameters
+
 - `-o, --output <path>`: Output file path (default: `input.pp3` or `input_processed.[format]`)
 - `--pp3-only`: Generate PP3 file without processing image
 - `-p, --prompt <text>`: Natural language prompt for AI analysis
 - `--preset <name>`: Preset style to use (`aggressive`, `creative`, `balanced`, `technical`)
 
 ### AI Configuration
+
 - `--provider <name>`: AI service provider (`openai`, `anthropic`, `google`, `openrouter`, `openai-compatible`)
 - `--model <name>`: Model name (default: `gpt-4-vision-preview`)
 
 ### Output Format
+
 - `--tiff`: Export as TIFF format
 - `--png`: Export as PNG format
 - `--compression <type>`: TIFF compression (`z` or `none`)
@@ -157,14 +198,18 @@ ai-pp3 input.dng \
 - `--quality <n>`: JPEG quality (1-100)
 
 ### Advanced Controls
+
 - `--base <path>`: Base PP3 file for incremental improvements
 - `--sections <list>`: Comma-separated PP3 sections to process (e.g. `Exposure,ColorToning`)
-- `--preview-quality <n>`: Preview JPEG quality (1-100, default: 85)
+- `--preview-quality <n>`: Preview quality (1-100, JPEG only, default: 85)
+- `--preview-format <format>`: Preview image format (`jpeg` or `png`, default: `jpeg`)
 - `--max-retries <n>`: Maximum number of retries for AI API calls (default: 2)
+- `--generations <n>`: Generate multiple PP3 profiles and use AI to select the best one (1-10, default: 1)
 - `-v, --verbose`: Enable detailed processing logs
-- `-k, --keep-preview`: Retain preview JPEG after processing
+- `-k, --keep-preview`: Retain preview file after processing
 
 ### Examples
+
 ```bash
 # Basic conversion with quality control
 ai-pp3 input.dng --tiff --compression z --bit-depth 16
@@ -174,12 +219,23 @@ ai-pp3 input.dng --provider anthropic --model claude-3-opus-20240229
 
 # Section-limited processing
 ai-pp3 input.dng --sections Exposure,Detail --pp3-only
+
+# Use PNG preview for AI analysis (better for some models)
+ai-pp3 input.dng --preview-format png --keep-preview
+
+# Multi-generation mode: Generate 3 different PP3 profiles and let AI pick the best
+ai-pp3 input.dng --generations 3 --verbose
+
+# Multi-generation with custom settings
+ai-pp3 input.dng --generations 5 --preset creative --provider anthropic --model claude-3-opus-20240229
 ```
 
 ## Roadmap
+
 - [ ] ART (.arp) profile compatibility
 
 ## FAQ
+
 For detailed questions and answers, see our [FAQ documentation](faq.md).
 
 ## License

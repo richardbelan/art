@@ -16,9 +16,10 @@
     "postbuild": "chmod +x ./dist/bin.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "prepare": "pnpm build"
+    "lint-staged": "lint-staged",
+    "prepare": "husky"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^2.2.9",
@@ -45,6 +46,7 @@
     "@types/yargs": "^17.0.33",
     "@typescript-eslint/eslint-plugin": "^8.33.0",
     "@typescript-eslint/parser": "^8.33.0",
+    "@vitest/coverage-v8": "3.1.4",
     "eslint": "^9.28.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-import-resolver-typescript": "^4.4.2",
@@ -54,6 +56,8 @@
     "eslint-plugin-sonarjs": "^3.0.2",
     "eslint-plugin-unicorn": "^59.0.1",
     "globals": "^16.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.0",
     "prettier": "^3.5.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.33.0",

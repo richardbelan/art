@@ -3,7 +3,10 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { convertDngToImageWithPP3 } from "./raw-therapee-wrap.js";
-import { generatePP3FromRawImage } from "./agent.js";
+import {
+  generatePP3FromRawImage,
+  generateMultiPP3FromRawImage,
+} from "./agent.js";
 import fs from "node:fs";
 import packageJson from "../package.json" with { type: "json" };
 
@@ -24,7 +27,9 @@ interface ProcessImageOptions {
   compression?: "z" | "none";
   bitDepth?: 8 | 16;
   previewQuality?: number;
+  previewFormat?: "jpeg" | "png";
   maxRetries?: number;
+  generations?: number;
 }
 
 function getOutputFormat(
@@ -35,15 +40,11 @@ function getOutputFormat(
   return "jpeg";
 }
 
-export async function processImage(
-  inputPath: string,
-  options: ProcessImageOptions = {},
-) {
+async function validateInputFile(inputPath: string): Promise<void> {
   if (!inputPath) {
     throw new Error("Input path cannot be empty");
   }
 
-  // Validate input file exists and is readable
   try {
     await fs.promises.access(inputPath, fs.constants.R_OK);
   } catch (error: unknown) {
@@ -56,8 +57,99 @@ export async function processImage(
       throw error;
     }
   }
+}
 
-  // Generate PP3 content
+function generateOutputPaths(
+  inputPath: string,
+  options: ProcessImageOptions,
+  format: string,
+) {
+  const pp3Path = options.output ?? inputPath.replace(/\.[^.]+$/, ".pp3");
+  const imagePath =
+    options.output ?? inputPath.replace(/\.[^.]+$/, `_processed.${format}`);
+  return { pp3Path, imagePath };
+}
+
+async function cleanupIntermediateFiles(
+  allResults: { pp3Path: string; processedImagePath: string }[],
+  bestResult: { pp3Path: string; processedImagePath: string },
+): Promise<void> {
+  for (const genResult of allResults) {
+    if (genResult !== bestResult) {
+      try {
+        await fs.promises.unlink(genResult.pp3Path);
+        await fs.promises.unlink(genResult.processedImagePath);
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  }
+}
+
+async function processMultiGeneration(
+  inputPath: string,
+  options: ProcessImageOptions,
+): Promise<void> {
+  if (options.verbose) {
+    console.log(
+      `Multi-generation mode: generating ${String(options.generations)} different PP3 profiles`,
+    );
+  }
+
+  const format = getOutputFormat(options);
+  const result = await generateMultiPP3FromRawImage({
+    inputPath,
+    basePP3Path: options.base,
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    providerName: options.provider || "openai",
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    visionModel: options.model || "gpt-4-vision-preview",
+    verbose: options.verbose,
+    keepPreview: options.keepPreview,
+    prompt: options.prompt,
+    preset: options.preset,
+    sections: options.sections?.split(",").filter((s) => s.trim() !== ""),
+    previewQuality: options.previewQuality,
+    previewFormat: options.previewFormat,
+    maxRetries: options.maxRetries,
+    generations: options.generations,
+    outputFormat: format,
+    outputQuality: options.quality,
+    tiffCompression: options.compression,
+    bitDepth: Number(options.bitDepth) as 8 | 16,
+  });
+
+  const { pp3Path, imagePath } = generateOutputPaths(
+    inputPath,
+    options,
+    format,
+  );
+  await fs.promises.writeFile(pp3Path, result.bestResult.pp3Content);
+
+  if (options.verbose) {
+    console.log(
+      `Selected generation ${String(result.bestResult.generationIndex + 1)} as the best result`,
+    );
+    console.log(`AI evaluation: ${result.evaluationReason.split("\n")[0]}`);
+  }
+
+  if (options.pp3Only) {
+    return;
+  }
+
+  if (result.bestResult.processedImagePath !== imagePath) {
+    await fs.promises.copyFile(result.bestResult.processedImagePath, imagePath);
+  }
+
+  if (!options.verbose && !options.keepPreview) {
+    await cleanupIntermediateFiles(result.allResults, result.bestResult);
+  }
+}
+
+async function processSingleGeneration(
+  inputPath: string,
+  options: ProcessImageOptions,
+): Promise<void> {
   const pp3Content = await generatePP3FromRawImage({
     inputPath,
     basePP3Path: options.base,
@@ -71,6 +163,7 @@ export async function processImage(
     preset: options.preset,
     sections: options.sections?.split(",").filter((s) => s.trim() !== ""),
     previewQuality: options.previewQuality,
+    previewFormat: options.previewFormat,
     maxRetries: options.maxRetries,
   });
 
@@ -78,27 +171,38 @@ export async function processImage(
     throw new Error("Failed to generate PP3 content");
   }
 
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-  const pp3Path = options.output || inputPath.replace(/\.[^.]+$/, ".pp3");
+  const format = getOutputFormat(options);
+  const { pp3Path, imagePath } = generateOutputPaths(
+    inputPath,
+    options,
+    format,
+  );
 
   await fs.promises.writeFile(pp3Path, pp3Content);
-  // Handle PP3-only mode
+
   if (options.pp3Only) {
     return;
   }
 
-  // Process image with PP3
-  const format = getOutputFormat(options);
-  const outputPath =
-    options.output ?? inputPath.replace(/\.[^.]+$/, `_processed.${format}`);
   await convertDngToImageWithPP3({
     input: inputPath,
-    output: outputPath,
+    output: imagePath,
     pp3Path,
     format,
     tiffCompression: options.compression,
     bitDepth: Number(options.bitDepth) as 8 | 16,
   });
+}
+
+export async function processImage(
+  inputPath: string,
+  options: ProcessImageOptions = {},
+) {
+  await validateInputFile(inputPath);
+
+  return options.generations && options.generations > 1
+    ? processMultiGeneration(inputPath, options)
+    : processSingleGeneration(inputPath, options);
 }
 
 // Create the CLI program
@@ -154,7 +258,7 @@ void yargs(hideBin(process.argv))
         })
         .option("keep-preview", {
           alias: "k",
-          describe: "Keep the preview.jpg file after processing",
+          describe: "Keep the preview file after processing",
           type: "boolean",
         })
         .option("quality", {
@@ -163,7 +267,7 @@ void yargs(hideBin(process.argv))
           type: "number",
         })
         .option("preview-quality", {
-          describe: "JPEG quality for preview generation (1-100)",
+          describe: "Quality for preview generation (1-100, JPEG only)",
           type: "number",
           coerce: (value) => {
             const quality = Number.parseInt(String(value), 10);
@@ -172,6 +276,12 @@ void yargs(hideBin(process.argv))
             }
             return quality;
           },
+        })
+        .option("preview-format", {
+          describe: "Preview image format (jpeg or png)",
+          type: "string",
+          choices: ["jpeg", "png"],
+          default: "jpeg",
         })
         .option("tiff", {
           describe: "Output as TIFF format",
@@ -210,6 +320,22 @@ void yargs(hideBin(process.argv))
             }
             return retries;
           },
+        })
+        .option("generations", {
+          describe:
+            "Generate multiple PP3 profiles and use AI to select the best one",
+          type: "number",
+          coerce: (value) => {
+            const generations = Number.parseInt(String(value), 10);
+            if (
+              Number.isNaN(generations) ||
+              generations < 1 ||
+              generations > 10
+            ) {
+              throw new Error("Generations must be between 1 and 10");
+            }
+            return generations;
+          },
         });
     },
     async (argv) => {
@@ -231,7 +357,9 @@ void yargs(hideBin(process.argv))
           compression: argv.compression as "z" | "none" | undefined,
           bitDepth: argv["bit-depth"] as 8 | 16,
           previewQuality: argv["preview-quality"],
+          previewFormat: argv["preview-format"] as "jpeg" | "png",
           maxRetries: argv["max-retries"],
+          generations: argv.generations,
         });
       } catch (error_) {
         const error =
