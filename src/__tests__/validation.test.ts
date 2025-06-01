@@ -1,48 +1,49 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { validateFileAccess, handleFileError } from "../utils/validation.js";
 
-// Mock node:fs
-vi.mock("node:fs", async () => {
-  const actual = await vi.importActual("node:fs");
-  return {
-    ...actual,
+// Mock node:fs before importing the module under test
+vi.mock("node:fs", () => ({
+  default: {
     constants: { R_OK: 4, W_OK: 2 },
     promises: {
       access: vi.fn(),
     },
-  };
-});
+  },
+}));
 
-const fs = await import("node:fs");
+// Import after mocking
+import { validateFileAccess, handleFileError } from "../utils/validation.js";
+import fs from "node:fs";
 
 beforeEach(() => {
-  vi.resetAllMocks();
+  vi.clearAllMocks();
   // Reset to success by default
-  vi.mocked(fs.promises.access).mockResolvedValue();
+  vi.mocked(fs.promises.access).mockResolvedValue(undefined);
 });
 
 describe("validateFileAccess", () => {
   it("should succeed when file access is allowed", async () => {
-    vi.mocked(fs.promises.access).mockResolvedValue();
+    // Explicitly mock success for this test
+    vi.mocked(fs.promises.access).mockResolvedValue(undefined);
 
     await expect(
       validateFileAccess("/path/to/file.txt", "read"),
     ).resolves.toBeUndefined();
     expect(fs.promises.access).toHaveBeenCalledWith(
       "/path/to/file.txt",
-      fs.constants.R_OK,
+      4, // R_OK
     );
   });
 
   it("should use write mode correctly", async () => {
-    vi.mocked(fs.promises.access).mockResolvedValue();
+    // Explicitly mock success for this test
+    vi.mocked(fs.promises.access).mockResolvedValue(undefined);
 
     await expect(
       validateFileAccess("/path/to/directory", "write"),
     ).resolves.toBeUndefined();
     expect(fs.promises.access).toHaveBeenCalledWith(
       "/path/to/directory",
-      fs.constants.W_OK,
+      2, // W_OK
     );
   });
 

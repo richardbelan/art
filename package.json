@@ -1,6 +1,6 @@
 {
   "name": "ai-pp3",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "description": "CLI tool combining multimodal AI analysis with RawTherapee's engine to generate optimized PP3 profiles for RAW photography",
   "engines": {
     "node": ">=18"

@@ -205,13 +205,14 @@ INSTRUCTIONS:
 - Provide a clear, detailed explanation of your choice
 
 OUTPUT FORMAT:
-BEST_GENERATION: [number]
 
 ANALYSIS:
 [Detailed analysis of each generation's strengths and weaknesses]
 
 REASONING:
 [Clear explanation of why the chosen generation is the best, referencing specific visual qualities and technical aspects]
+
+BEST_GENERATION: [number]
 
 Please evaluate the following processed images:`;
 
