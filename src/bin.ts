@@ -7,6 +7,7 @@ import {
   generatePP3FromRawImage,
   generateMultiPP3FromRawImage,
 } from "./agent.js";
+import { ImageFormat } from "./types.js";
 import fs from "node:fs";
 import packageJson from "../package.json" with { type: "json" };
 
@@ -32,9 +33,7 @@ interface ProcessImageOptions {
   generations?: number;
 }
 
-function getOutputFormat(
-  options: ProcessImageOptions,
-): "jpeg" | "tiff" | "png" {
+function getOutputFormat(options: ProcessImageOptions): ImageFormat {
   if (options.png) return "png";
   if (options.tiff) return "tiff";
   return "jpeg";
@@ -62,7 +61,7 @@ async function validateInputFile(inputPath: string): Promise<void> {
 function generateOutputPaths(
   inputPath: string,
   options: ProcessImageOptions,
-  format: string,
+  format: ImageFormat,
 ) {
   const pp3Path = options.output ?? inputPath.replace(/\.[^.]+$/, ".pp3");
   const imagePath =
@@ -108,7 +107,7 @@ async function generateMultiPP3Result(
     previewFormat: options.previewFormat,
     maxRetries: options.maxRetries,
     generations: options.generations,
-    outputFormat: format,
+    outputFormat: format as ImageFormat,
     outputQuality: options.quality,
     tiffCompression: options.compression,
     bitDepth: Number(options.bitDepth) as 8 | 16,
@@ -224,7 +223,7 @@ async function processSingleGeneration(
     input: inputPath,
     output: imagePath,
     pp3Path,
-    format,
+    format: format,
     tiffCompression: options.compression,
     bitDepth: Number(options.bitDepth) as 8 | 16,
   });
