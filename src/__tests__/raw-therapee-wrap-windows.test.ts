@@ -25,7 +25,6 @@ vi.mock("node:os", async () => {
   return {
     ...actual,
     default: {
-      ...actual.default,
       platform: () => "win32",
     },
     platform: () => "win32",

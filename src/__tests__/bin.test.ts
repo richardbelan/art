@@ -132,6 +132,7 @@ describe("processImage", () => {
         pp3Content: "best pp3 content",
         pp3Path: "/path/to/best.pp3",
         processedImagePath: "/path/to/best_processed.jpg",
+        success: true,
       },
       allResults: [
         {
@@ -139,12 +140,14 @@ describe("processImage", () => {
           pp3Content: "pp3 content 1",
           pp3Path: "/path/to/gen1.pp3",
           processedImagePath: "/path/to/gen1_processed.jpg",
+          success: true,
         },
         {
           generationIndex: 1,
           pp3Content: "best pp3 content",
           pp3Path: "/path/to/best.pp3",
           processedImagePath: "/path/to/best_processed.jpg",
+          success: true,
         },
       ],
       evaluationReason: "Generation 2 has better exposure and color balance",
@@ -188,6 +191,7 @@ describe("processImage", () => {
         pp3Content: "best pp3 content",
         pp3Path: path.join(TEST_OUTPUT_DIR, "best.pp3"),
         processedImagePath: path.join(TEST_OUTPUT_DIR, "best_processed.jpg"),
+        success: true,
       },
       allResults: [],
       evaluationReason: "Only one generation",

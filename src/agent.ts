@@ -445,13 +445,28 @@ async function prepareImageContents(
     | { type: "image"; image: Buffer }
   )[] = [{ type: "text", text: EVALUATION_PROMPT }];
 
-  for (const [index, result] of generationResults.entries()) {
+  // Filter out failed generations
+  const successfulResults = generationResults.filter(
+    (result) => result.success,
+  );
+
+  if (verbose && successfulResults.length < generationResults.length) {
+    console.log(
+      `Skipping ${String(generationResults.length - successfulResults.length)} failed generations in evaluation`,
+    );
+  }
+
+  // Create a mapping for display indices (1-based) that skips failed generations
+  let displayIndex = 1;
+
+  for (const result of successfulResults) {
     try {
       const imageData = await fs.promises.readFile(result.processedImagePath);
       imageContents.push(
-        { type: "text", text: `\n\nGeneration ${String(index + 1)}:` },
+        { type: "text", text: `\n\nGeneration ${String(displayIndex)}:` },
         { type: "image", image: imageData },
       );
+      displayIndex++;
     } catch (error) {
       if (verbose) {
         console.warn(
@@ -459,6 +474,8 @@ async function prepareImageContents(
           error,
         );
       }
+      // Mark this generation as failed since we couldn't read its image
+      result.success = false;
     }
   }
 
@@ -470,15 +487,41 @@ function parseBestGenerationIndex(
   generationResults: GenerationResult[],
 ): number {
   const bestGenerationMatch = /BEST_GENERATION:\s*(\d+)/i.exec(responseText);
-  return bestGenerationMatch
-    ? Math.max(
-        0,
-        Math.min(
-          Number.parseInt(bestGenerationMatch[1], 10) - 1,
-          generationResults.length - 1,
-        ),
-      )
-    : 0;
+
+  if (!bestGenerationMatch) {
+    // Default to the first successful generation if no match
+    const firstSuccessfulIndex = generationResults.findIndex(
+      (result) => result.success,
+    );
+    return Math.max(firstSuccessfulIndex, 0);
+  }
+
+  // Get the display index (1-based) from the AI response
+  const displayIndex = Number.parseInt(bestGenerationMatch[1], 10);
+
+  // Create a mapping from display indices to actual indices
+  const successfulResults = generationResults.filter(
+    (result) => result.success,
+  );
+  const displayToActualMap = new Map<number, number>();
+
+  let currentDisplayIndex = 1;
+  for (const result of successfulResults) {
+    displayToActualMap.set(currentDisplayIndex, result.generationIndex);
+    currentDisplayIndex++;
+  }
+
+  // Get the actual index from the map, or default to the first successful one
+  const actualIndex = displayToActualMap.get(displayIndex);
+  if (actualIndex !== undefined) {
+    return actualIndex;
+  }
+
+  // Fallback to the first successful generation
+  const firstSuccessfulIndex = generationResults.findIndex(
+    (result) => result.success,
+  );
+  return Math.max(firstSuccessfulIndex, 0);
 }
 
 async function evaluateGenerations(
@@ -488,16 +531,31 @@ async function evaluateGenerations(
   maxRetries: number,
   verbose: boolean,
 ): Promise<{ bestIndex: number; evaluationReason: string }> {
-  if (generationResults.length <= 1) {
-    return { bestIndex: 0, evaluationReason: "Only one generation available" };
+  // Filter out failed generations
+  const successfulResults = generationResults.filter(
+    (result) => result.success,
+  );
+
+  if (successfulResults.length === 0) {
+    throw new Error("No successful generations to evaluate");
+  }
+
+  if (successfulResults.length === 1) {
+    // Find the index of this successful result in the original array
+    const originalIndex = generationResults.indexOf(successfulResults[0]);
+    return {
+      bestIndex: originalIndex,
+      evaluationReason: "Only one successful generation available",
+    };
   }
 
   const aiProvider = handleProviderSetup(providerName, visionModel);
-  const imageContents = await prepareImageContents(generationResults, verbose);
+  // Only pass successful generations to prepareImageContents
+  const imageContents = await prepareImageContents(successfulResults, verbose);
 
   if (verbose) {
     console.log(
-      `Evaluating ${String(generationResults.length)} generations with AI...`,
+      `Evaluating ${String(successfulResults.length)} successful generations with AI...`,
     );
   }
 
@@ -515,25 +573,38 @@ async function evaluateGenerations(
 
     const responseText =
       typeof response === "string" ? response : response.text;
-    const bestIndex = parseBestGenerationIndex(responseText, generationResults);
+    const bestIndex = parseBestGenerationIndex(responseText, successfulResults);
+
+    // Map the best index from the successful results array back to the original array
+    const originalIndex = generationResults.findIndex(
+      (result) =>
+        result.generationIndex === successfulResults[bestIndex].generationIndex,
+    );
+
+    const finalIndex = originalIndex === -1 ? bestIndex : originalIndex;
 
     if (verbose) {
       console.log(
-        `AI selected generation ${String(bestIndex + 1)} as the best`,
+        `AI selected generation ${String(successfulResults[bestIndex].generationIndex + 1)} as the best`,
       );
     }
 
     return {
-      bestIndex,
+      bestIndex: finalIndex,
       evaluationReason: responseText,
     };
   } catch (error) {
     if (verbose) {
       console.warn("AI evaluation failed, using first generation:", error);
     }
+    // Find the index of the first successful generation in the original array
+    const firstSuccessfulIndex = generationResults.findIndex(
+      (result) => result.success,
+    );
+
     return {
-      bestIndex: 0,
-      evaluationReason: `AI evaluation failed: ${error instanceof Error ? error.message : "Unknown error"}. Using first generation as fallback.`,
+      bestIndex: Math.max(firstSuccessfulIndex, 0),
+      evaluationReason: `AI evaluation failed: ${error instanceof Error ? error.message : "Unknown error"}. Using first successful generation as fallback.`,
     };
   }
 }
@@ -611,6 +682,7 @@ async function generateMultiplePP3Profiles(
         pp3Path,
         processedImagePath,
         generationIndex: index,
+        success: true,
       });
 
       if (verbose) {
@@ -625,12 +697,26 @@ async function generateMultiplePP3Profiles(
           error,
         );
       }
+
+      // Add a failed generation entry to track it
+      generationResults.push({
+        pp3Content: "",
+        pp3Path: "",
+        processedImagePath: "",
+        generationIndex: index,
+        success: false,
+      });
+
       // Continue with other generations even if one fails
     }
   }
 
-  if (generationResults.length === 0) {
-    throw new Error("Failed to generate any PP3 profiles");
+  const successfulGenerations = generationResults.filter(
+    (result) => result.success,
+  );
+
+  if (successfulGenerations.length === 0) {
+    throw new Error("Failed to generate any successful PP3 profiles");
   }
 
   // Use AI to evaluate and select the best result
