@@ -55,6 +55,7 @@ Key Rules:
 2. Keep original section order and parameter order
 3. One section per SEARCH/REPLACE block
 4. Focus on creative color grading and mood enhancement
+5. You can skip lines in SEARCH blocks - only include parameters you want to change
 
 Output Format:
 
@@ -80,6 +81,19 @@ Compensation=-0.7
 >>>>>>> REPLACE
 \`\`\`
 
+Example with line skipping (you can omit unchanged parameters):
+\`\`\`
+<<<<<<< SEARCH
+[ColorToning]
+Lumamode=true
+Redlow=0
+=======
+[ColorToning]
+Lumamode=true
+Redlow=20
+>>>>>>> REPLACE
+\`\`\`
+
 [Additional changes following these rules]
 - Maintain exact parameter order in every block
 - Never change section headers
@@ -100,6 +114,7 @@ Key Rules:
 2. Keep original section order and parameter order
 3. One section per SEARCH/REPLACE block
 4. Make measured, balanced adjustments
+5. You can skip lines in SEARCH blocks - only include parameters you want to change
 
 Output Format:
 
@@ -125,10 +140,24 @@ Compensation=-0.2
 >>>>>>> REPLACE
 \`\`\`
 
+Example with line skipping (you can omit unchanged parameters):
+\`\`\`
+<<<<<<< SEARCH
+[ColorToning]
+Lumamode=true
+Redlow=0
+=======
+[ColorToning]
+Lumamode=true
+Redlow=10
+>>>>>>> REPLACE
+\`\`\`
+
 [Additional changes following these rules]
 - Maintain exact parameter order in every block
 - Never change section headers
 - 1 section per block maximum
+- You can skip lines in SEARCH blocks - only include parameters you want to change
 
 Current pp3 to transform:
 `;

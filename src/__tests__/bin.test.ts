@@ -132,6 +132,7 @@ describe("processImage", () => {
         pp3Content: "best pp3 content",
         pp3Path: "/path/to/best.pp3",
         processedImagePath: "/path/to/best_processed.jpg",
+        evaluationImagePath: "/path/to/best_eval.jpg",
         success: true,
       },
       allResults: [
@@ -140,6 +141,7 @@ describe("processImage", () => {
           pp3Content: "pp3 content 1",
           pp3Path: "/path/to/gen1.pp3",
           processedImagePath: "/path/to/gen1_processed.jpg",
+          evaluationImagePath: "/path/to/gen1_eval.jpg",
           success: true,
         },
         {
@@ -147,10 +149,12 @@ describe("processImage", () => {
           pp3Content: "best pp3 content",
           pp3Path: "/path/to/best.pp3",
           processedImagePath: "/path/to/best_processed.jpg",
+          evaluationImagePath: "/path/to/best_eval.jpg",
           success: true,
         },
       ],
       evaluationReason: "Generation 2 has better exposure and color balance",
+      finalOutputPath: "/path/to/final.jpg",
     };
 
     vi.mocked(generateMultiPP3FromRawImage).mockResolvedValue(mockMultiResult);
@@ -191,10 +195,12 @@ describe("processImage", () => {
         pp3Content: "best pp3 content",
         pp3Path: path.join(TEST_OUTPUT_DIR, "best.pp3"),
         processedImagePath: path.join(TEST_OUTPUT_DIR, "best_processed.jpg"),
+        evaluationImagePath: path.join(TEST_OUTPUT_DIR, "best_eval.jpg"),
         success: true,
       },
       allResults: [],
       evaluationReason: "Only one generation",
+      finalOutputPath: path.join(TEST_OUTPUT_DIR, "final.jpg"),
     };
 
     vi.mocked(generateMultiPP3FromRawImage).mockResolvedValue(mockMultiResult);

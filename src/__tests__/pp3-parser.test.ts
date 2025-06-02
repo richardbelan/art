@@ -115,4 +115,28 @@ TestModified
     expect(result[0].search).toBe("Test");
     expect(result[0].replace).toBe("TestModified");
   });
+
+  it("should handle line skipping in search/replace blocks", () => {
+    const input = `
+<<<<<<< SEARCH
+[ColorToning]
+Lumamode=true
+Twocolor=Std
+Redlow=0
+=======
+[ColorToning]
+Lumamode=true
+Twocolor=Std
+Redlow=20
+>>>>>>> REPLACE`;
+
+    const result = parseSearchReplaceBlocks(input);
+    expect(result).toHaveLength(1);
+    expect(result[0].search).toBe(
+      "[ColorToning]\nLumamode=true\nTwocolor=Std\nRedlow=0",
+    );
+    expect(result[0].replace).toBe(
+      "[ColorToning]\nLumamode=true\nTwocolor=Std\nRedlow=20",
+    );
+  });
 });

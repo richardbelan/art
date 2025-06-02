@@ -86,18 +86,13 @@ async function cleanupIntermediateFiles(
   }
 }
 
-async function processMultiGeneration(
+// Helper functions to reduce cognitive complexity
+async function generateMultiPP3Result(
   inputPath: string,
   options: ProcessImageOptions,
-): Promise<void> {
-  if (options.verbose) {
-    console.log(
-      `Multi-generation mode: generating ${String(options.generations)} different PP3 profiles`,
-    );
-  }
-
-  const format = getOutputFormat(options);
-  const result = await generateMultiPP3FromRawImage({
+  format: string,
+) {
+  return await generateMultiPP3FromRawImage({
     inputPath,
     basePP3Path: options.base,
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
@@ -118,6 +113,43 @@ async function processMultiGeneration(
     tiffCompression: options.compression,
     bitDepth: Number(options.bitDepth) as 8 | 16,
   });
+}
+
+async function copyFinalOutput(
+  sourcePath: string,
+  destinationPath: string,
+  verbose: boolean | undefined,
+): Promise<void> {
+  if (verbose) {
+    console.log(
+      `Copying final output from ${sourcePath} to ${destinationPath}`,
+    );
+  }
+
+  try {
+    await fs.promises.copyFile(sourcePath, destinationPath);
+  } catch (error) {
+    if (verbose) {
+      console.error(
+        `Failed to copy file: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    throw error;
+  }
+}
+
+async function processMultiGeneration(
+  inputPath: string,
+  options: ProcessImageOptions,
+): Promise<void> {
+  if (options.verbose) {
+    console.log(
+      `Multi-generation mode: generating ${String(options.generations)} different PP3 profiles`,
+    );
+  }
+
+  const format = getOutputFormat(options);
+  const result = await generateMultiPP3Result(inputPath, options, format);
 
   const { pp3Path, imagePath } = generateOutputPaths(
     inputPath,
@@ -138,7 +170,11 @@ async function processMultiGeneration(
   }
 
   if (result.bestResult.processedImagePath !== imagePath) {
-    await fs.promises.copyFile(result.bestResult.processedImagePath, imagePath);
+    await copyFinalOutput(
+      result.bestResult.processedImagePath,
+      imagePath,
+      options.verbose,
+    );
   }
 
   if (!options.verbose && !options.keepPreview) {

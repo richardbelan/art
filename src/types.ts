@@ -41,6 +41,7 @@ export interface GenerationResult {
   pp3Content: string;
   pp3Path: string;
   processedImagePath: string;
+  evaluationImagePath: string;
   generationIndex: number;
   success: boolean;
 }
@@ -49,4 +50,5 @@ export interface MultiGenerationResult {
   bestResult: GenerationResult;
   allResults: GenerationResult[];
   evaluationReason: string;
+  finalOutputPath: string;
 }
