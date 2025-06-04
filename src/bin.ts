@@ -15,7 +15,7 @@ interface ProcessImageOptions {
   output?: string;
   pp3Only?: boolean;
   provider?: string;
-  model?: string;
+  model?: string | string[];
   verbose?: boolean;
   keepPreview?: boolean;
   quality?: number;
@@ -161,6 +161,13 @@ async function processMultiGeneration(
     console.log(
       `Selected generation ${String(result.bestResult.generationIndex + 1)} as the best result`,
     );
+    // In verbose mode, we already show the full evaluation in the agent.ts file
+    // Here we just show a summary for consistency with non-verbose mode
+    console.log(
+      `AI evaluation summary: ${result.evaluationReason.split("\n")[0]}`,
+    );
+  } else {
+    // In non-verbose mode, show just the first line of the evaluation
     console.log(`AI evaluation: ${result.evaluationReason.split("\n")[0]}`);
   }
 
@@ -282,7 +289,8 @@ void yargs(hideBin(process.argv))
           default: "openai",
         })
         .option("model", {
-          describe: "Model name to use",
+          describe:
+            "Model name to use (can be comma-separated list for multiple models)",
           type: "string",
           default: "gpt-4-vision-preview",
         })
@@ -379,7 +387,9 @@ void yargs(hideBin(process.argv))
           output: argv.output,
           pp3Only: argv["pp3-only"],
           provider: argv.provider,
-          model: argv.model,
+          model: argv.model.includes(",")
+            ? argv.model.split(",").map((m) => m.trim())
+            : argv.model,
           verbose: argv.verbose,
           keepPreview: argv["keep-preview"],
           quality: argv.quality,

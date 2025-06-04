@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseSearchReplaceBlocks } from "../pp3-parser.js";
+import {
+  parseSearchReplaceBlocks,
+  parseDirectSectionChanges,
+} from "../pp3-parser.js";
 
 describe("PP3 Parser", () => {
   it("should parse complete search/replace block", () => {
@@ -138,5 +141,114 @@ Redlow=20
     expect(result[0].replace).toBe(
       "[ColorToning]\nLumamode=true\nTwocolor=Std\nRedlow=20",
     );
+  });
+
+  describe("Direct Section Changes Parser", () => {
+    it("should parse direct section changes from code blocks", () => {
+      const input = `
+ANALYSIS:
+The image appears underexposed and lacks contrast.
+
+PLAN:
+Increase exposure and contrast to improve overall brightness and detail.
+
+EXECUTION:
+
+\`\`\`
+[Exposure]
+Brightness=35
+Contrast=25
+\`\`\`
+
+\`\`\`
+[ColorToning]
+Redlow=20
+\`\`\`
+`;
+
+      const result = parseDirectSectionChanges(input);
+      expect(result).toHaveLength(2);
+
+      // Check first section
+      expect(result[0].sectionName).toBe("Exposure");
+      expect(result[0].parameters.size).toBe(2);
+      expect(result[0].parameters.get("Brightness")).toBe("Brightness=35");
+      expect(result[0].parameters.get("Contrast")).toBe("Contrast=25");
+
+      // Check second section
+      expect(result[1].sectionName).toBe("ColorToning");
+      expect(result[1].parameters.size).toBe(1);
+      expect(result[1].parameters.get("Redlow")).toBe("Redlow=20");
+    });
+
+    it("should handle a single section with multiple parameters", () => {
+      const input = `
+\`\`\`
+[Exposure]
+Brightness=35
+Contrast=25
+Saturation=10
+\`\`\`
+`;
+
+      const result = parseDirectSectionChanges(input);
+      expect(result).toHaveLength(1);
+      expect(result[0].sectionName).toBe("Exposure");
+      expect(result[0].parameters.size).toBe(3);
+      expect(result[0].parameters.get("Brightness")).toBe("Brightness=35");
+      expect(result[0].parameters.get("Contrast")).toBe("Contrast=25");
+      expect(result[0].parameters.get("Saturation")).toBe("Saturation=10");
+    });
+
+    it("should handle input without code blocks", () => {
+      const input = `
+[Exposure]
+Brightness=35
+Contrast=25
+
+[ColorToning]
+Redlow=20
+`;
+
+      const result = parseDirectSectionChanges(input);
+      expect(result).toHaveLength(2);
+
+      // Check first section
+      expect(result[0].sectionName).toBe("Exposure");
+      expect(result[0].parameters.size).toBe(2);
+
+      // Check second section
+      expect(result[1].sectionName).toBe("ColorToning");
+      expect(result[1].parameters.size).toBe(1);
+    });
+
+    it("should handle empty input", () => {
+      const result = parseDirectSectionChanges("");
+      expect(result).toEqual([]);
+    });
+
+    it("should handle input with no valid sections", () => {
+      const input = `
+This is just some text without any section headers.
+`;
+
+      const result = parseDirectSectionChanges(input);
+      expect(result).toEqual([]);
+    });
+
+    it("should handle parameters with = in the value", () => {
+      const input = `
+\`\`\`
+[Exposure]
+Curve=0;0;0.5=0.5;1=1
+\`\`\`
+`;
+
+      const result = parseDirectSectionChanges(input);
+      expect(result).toHaveLength(1);
+      expect(result[0].sectionName).toBe("Exposure");
+      expect(result[0].parameters.size).toBe(1);
+      expect(result[0].parameters.get("Curve")).toBe("Curve=0;0;0.5=0.5;1=1");
+    });
   });
 });

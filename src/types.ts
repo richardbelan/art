@@ -17,7 +17,13 @@ export interface P3GenerationParameters {
   inputPath: string;
   basePP3Path?: string;
   providerName?: string;
-  visionModel?: string;
+  /**
+   * Vision model to use for image analysis
+   * Can be a single model name (string) or an array of model names
+   * If an array is provided, each model will be used for one generation
+   * The number of generations will be equal to the number of models
+   */
+  visionModel?: string | string[];
   verbose?: boolean;
   keepPreview?: boolean;
   prompt?: string;
@@ -26,6 +32,11 @@ export interface P3GenerationParameters {
   previewQuality?: number;
   previewFormat?: "jpeg" | "png";
   maxRetries?: number;
+  /**
+   * Number of generations to create
+   * Note: If visionModel is an array, this value is ignored and
+   * the number of generations equals the number of models
+   */
   generations?: number;
 }
 

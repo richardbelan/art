@@ -3,8 +3,8 @@ import {
   splitContentBySections,
   splitPP3ContentBySections,
   splitContentIntoSections,
-  generateMultiPP3FromRawImage,
-} from "../agent.js";
+} from "../pp3-sections/section-parser.js";
+import { generateMultiPP3FromRawImage } from "../agent.js";
 import {
   convertDngToImage,
   convertDngToImageWithPP3,
