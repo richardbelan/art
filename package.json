@@ -1,6 +1,6 @@
 {
   "name": "ai-pp3",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "CLI tool combining multimodal AI analysis with RawTherapee's engine to generate optimized PP3 profiles for RAW photography",
   "engines": {
     "node": ">=18"
@@ -33,24 +33,24 @@
     "@ai-sdk/openai-compatible": "^0.2.14",
     "@ai-sdk/togetherai": "^0.2.14",
     "@ai-sdk/xai": "^1.2.16",
-    "@openrouter/ai-sdk-provider": "^0.7.0",
+    "@openrouter/ai-sdk-provider": "^0.7.1",
     "@sindresorhus/is": "^7.0.2",
     "ai": "^4.3.16",
-    "fast-xml-parser": "^5.2.3",
+    "fast-xml-parser": "^5.2.4",
     "nano-spawn": "^1.0.2",
     "yargs": "^18.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",
-    "@types/node": "^22.15.29",
+    "@types/node": "^22.15.30",
     "@types/yargs": "^17.0.33",
     "@typescript-eslint/eslint-plugin": "^8.33.1",
     "@typescript-eslint/parser": "^8.33.1",
-    "@vitest/coverage-v8": "3.2.1",
+    "@vitest/coverage-v8": "3.2.2",
     "eslint": "^9.28.0",
     "eslint-config-prettier": "^10.1.5",
-    "eslint-import-resolver-typescript": "^4.4.2",
-    "eslint-plugin-import-x": "^4.15.0",
+    "eslint-import-resolver-typescript": "^4.4.3",
+    "eslint-plugin-import-x": "^4.15.1",
     "eslint-plugin-prettier": "^5.4.1",
     "eslint-plugin-promise": "^7.2.1",
     "eslint-plugin-sonarjs": "^3.0.2",
@@ -61,7 +61,7 @@
     "prettier": "^3.5.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.33.1",
-    "vitest": "^3.2.1"
+    "vitest": "^3.2.2"
   },
   "keywords": [
     "ai",

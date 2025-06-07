@@ -114,7 +114,15 @@ async function validateOutputDirectory(output: string) {
   } catch (error: unknown) {
     if (error instanceof Error && "code" in error) {
       if (error.code === "ENOENT") {
-        throw new Error(`Output directory does not exist: ${outputDirectory}`);
+        // Create the directory if it doesn't exist
+        try {
+          await fs.promises.mkdir(outputDirectory, { recursive: true });
+          return; // Directory created successfully
+        } catch {
+          throw new Error(
+            `Failed to create output directory: ${outputDirectory}`,
+          );
+        }
       } else if (error.code === "EACCES") {
         throw new Error(
           `Permission denied writing to output directory: ${outputDirectory}`,

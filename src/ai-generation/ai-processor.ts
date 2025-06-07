@@ -89,7 +89,7 @@ export async function processAIGeneration(
   basePP3Path: string,
   sections: string[],
   providerName: string,
-  visionModel: string,
+  visionModel: string | string[],
   prompt: string | undefined,
   preset: string,
   maxRetries: number,
@@ -274,7 +274,7 @@ export function parseBestGenerationIndex(
 export async function evaluateGenerations(
   generationResults: GenerationResult[],
   providerName: string,
-  visionModel: string,
+  visionModel: string | string[],
   maxRetries: number,
   verbose: boolean,
 ): Promise<{ bestIndex: number; evaluationReason: string }> {

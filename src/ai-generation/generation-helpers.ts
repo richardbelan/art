@@ -94,6 +94,10 @@ export async function generateSinglePP3Profile(
       directoryName,
       `${baseName}_gen${String(index + 1)}${modelSuffix}.pp3`,
     );
+
+    // Ensure the directory exists before writing files
+    await fs.promises.mkdir(path.dirname(pp3Path), { recursive: true });
+
     await fs.promises.writeFile(pp3Path, pp3Content);
 
     // Create evaluation image with same format/quality as preview for consistency
@@ -101,6 +105,12 @@ export async function generateSinglePP3Profile(
       directoryName,
       `${baseName}_gen${String(index + 1)}${modelSuffix}_eval.${previewExtension}`,
     );
+
+    // Ensure the directory exists before creating the evaluation image
+    await fs.promises.mkdir(path.dirname(evaluationImagePath), {
+      recursive: true,
+    });
+
     await convertDngToImageWithPP3({
       input: inputPath,
       output: evaluationImagePath,
@@ -168,13 +178,19 @@ export function logSingleGenerationAnalysis(
   verbose: boolean,
   inputPath: string,
   providerName: string,
-  visionModel: string,
+  visionModel: string | string[],
 ): void {
   if (!verbose) return;
 
-  console.log(
-    `Analyzing image ${inputPath} with ${providerName} model ${String(visionModel)}`,
-  );
+  if (Array.isArray(visionModel)) {
+    console.log(
+      `Analyzing image ${inputPath} with ${providerName} models: ${visionModel.join(", ")}`,
+    );
+  } else {
+    console.log(
+      `Analyzing image ${inputPath} with ${providerName} model ${String(visionModel)}`,
+    );
+  }
 }
 
 /**
@@ -297,6 +313,9 @@ export async function generateMultiplePP3Profiles(
     console.log(`Generating final output image with winning PP3...`);
     console.log(`Final output path: ${finalOutputPath}`);
   }
+
+  // Ensure the output directory exists
+  await fs.promises.mkdir(path.dirname(finalOutputPath), { recursive: true });
 
   await convertDngToImageWithPP3({
     input: inputPath,

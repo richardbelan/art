@@ -9,6 +9,7 @@ import {
 } from "./agent.js";
 import { ImageFormat } from "./types.js";
 import fs from "node:fs";
+import path from "node:path";
 import packageJson from "../package.json" with { type: "json" };
 
 interface ProcessImageOptions {
@@ -126,6 +127,11 @@ async function copyFinalOutput(
   }
 
   try {
+    // Ensure the destination directory exists
+    const destinationDirectory = path.dirname(destinationPath);
+    await fs.promises.mkdir(destinationDirectory, { recursive: true });
+
+    // Copy the file
     await fs.promises.copyFile(sourcePath, destinationPath);
   } catch (error) {
     if (verbose) {
@@ -142,8 +148,12 @@ async function processMultiGeneration(
   options: ProcessImageOptions,
 ): Promise<void> {
   if (options.verbose) {
+    // Show the correct number of generations based on whether we're using multiple models
+    const generationCount = Array.isArray(options.model)
+      ? options.model.length
+      : options.generations;
     console.log(
-      `Multi-generation mode: generating ${String(options.generations)} different PP3 profiles`,
+      `Multi-generation mode: generating ${String(generationCount)} different PP3 profiles`,
     );
   }
 
@@ -242,7 +252,9 @@ export async function processImage(
 ) {
   await validateInputFile(inputPath);
 
-  return options.generations && options.generations > 1
+  // Use multi-generation if generations > 1 OR if model is an array of models
+  return (options.generations && options.generations > 1) ||
+    Array.isArray(options.model)
     ? processMultiGeneration(inputPath, options)
     : processSingleGeneration(inputPath, options);
 }
