@@ -269,44 +269,44 @@ export function parseBestGenerationIndex(
 }
 
 /**
- * Evaluates multiple generations and selects the best one
+ * Handles the case when there's only one successful generation
  */
-export async function evaluateGenerations(
+function handleSingleGeneration(
+  successfulResults: GenerationResult[],
   generationResults: GenerationResult[],
+): { bestIndex: number; evaluationReason: string } {
+  const originalIndex = generationResults.indexOf(successfulResults[0]);
+  return {
+    bestIndex: originalIndex,
+    evaluationReason: "Only one successful generation available",
+  };
+}
+
+/**
+ * Attempts to evaluate generations with a specific model
+ */
+async function attemptEvaluationWithModel(
+  model: string,
+  modelIndex: number,
+  models: string[],
   providerName: string,
-  visionModel: string | string[],
+  imageContents: (
+    | { type: "text"; text: string }
+    | { type: "image"; image: Buffer }
+  )[],
   maxRetries: number,
+  successfulResults: GenerationResult[],
+  generationResults: GenerationResult[],
   verbose: boolean,
-): Promise<{ bestIndex: number; evaluationReason: string }> {
-  // Filter out failed generations
-  const successfulResults = generationResults.filter(
-    (result) => result.success,
-  );
-
-  if (successfulResults.length === 0) {
-    throw new Error("No successful generations to evaluate");
-  }
-
-  if (successfulResults.length === 1) {
-    // Find the index of this successful result in the original array
-    const originalIndex = generationResults.indexOf(successfulResults[0]);
-    return {
-      bestIndex: originalIndex,
-      evaluationReason: "Only one successful generation available",
-    };
-  }
-
-  const aiProvider = handleProviderSetup(providerName, visionModel);
-  // Only pass successful generations to prepareImageContents
-  const imageContents = await prepareImageContents(successfulResults, verbose);
-
-  if (verbose) {
+): Promise<{ bestIndex: number; evaluationReason: string } | null> {
+  if (verbose && models.length > 1) {
     console.log(
-      `Evaluating ${String(successfulResults.length)} successful generations with AI...`,
+      `Attempting evaluation with model ${model} (${String(modelIndex + 1)}/${String(models.length)})...`,
     );
   }
 
   try {
+    const aiProvider = handleProviderSetup(providerName, model);
     const response = await generateText({
       model: aiProvider,
       messages: [
@@ -343,18 +343,110 @@ export async function evaluateGenerations(
       bestIndex: finalIndex,
       evaluationReason: responseText,
     };
-  } catch (error) {
-    if (verbose) {
-      console.warn("AI evaluation failed, using first generation:", error);
-    }
-    // Find the index of the first successful generation in the original array
-    const firstSuccessfulIndex = generationResults.findIndex(
-      (result) => result.success,
+  } catch {
+    // Handle error in the calling function
+    return null;
+  }
+}
+
+/**
+ * Handles the fallback case when all models fail
+ */
+function handleAllModelsFailed(
+  generationResults: GenerationResult[],
+  lastError: unknown,
+  verbose: boolean,
+): { bestIndex: number; evaluationReason: string } {
+  if (verbose) {
+    console.warn(
+      "All AI evaluation models failed, using first generation as fallback:",
+      lastError,
+    );
+  }
+
+  // Find the index of the first successful generation in the original array
+  const firstSuccessfulIndex = generationResults.findIndex(
+    (result) => result.success,
+  );
+
+  return {
+    bestIndex: Math.max(firstSuccessfulIndex, 0),
+    evaluationReason: `AI evaluation failed: ${lastError instanceof Error ? lastError.message : "Unknown error"}. Using first successful generation as fallback.`,
+  };
+}
+
+/**
+ * Evaluates multiple generations and selects the best one
+ * If multiple models are specified, it will try each one sequentially until successful
+ */
+export async function evaluateGenerations(
+  generationResults: GenerationResult[],
+  providerName: string,
+  visionModel: string | string[],
+  maxRetries: number,
+  verbose: boolean,
+): Promise<{ bestIndex: number; evaluationReason: string }> {
+  // Filter out failed generations
+  const successfulResults = generationResults.filter(
+    (result) => result.success,
+  );
+
+  if (successfulResults.length === 0) {
+    throw new Error("No successful generations to evaluate");
+  }
+
+  if (successfulResults.length === 1) {
+    return handleSingleGeneration(successfulResults, generationResults);
+  }
+
+  // Only pass successful generations to prepareImageContents
+  const imageContents = await prepareImageContents(successfulResults, verbose);
+
+  if (verbose) {
+    console.log(
+      `Evaluating ${String(successfulResults.length)} successful generations with AI...`,
+    );
+  }
+
+  // Convert visionModel to array for sequential attempts
+  const models = Array.isArray(visionModel) ? visionModel : [visionModel];
+  let lastError: unknown = null;
+
+  // Try each model sequentially until one succeeds
+  for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
+    const currentModel = models[modelIndex];
+
+    const result = await attemptEvaluationWithModel(
+      currentModel,
+      modelIndex,
+      models,
+      providerName,
+      imageContents,
+      maxRetries,
+      successfulResults,
+      generationResults,
+      verbose,
     );
 
-    return {
-      bestIndex: Math.max(firstSuccessfulIndex, 0),
-      evaluationReason: `AI evaluation failed: ${error instanceof Error ? error.message : "Unknown error"}. Using first successful generation as fallback.`,
-    };
+    if (result) {
+      return result;
+    } else {
+      // Handle error and try next model if available
+      const error = new Error(`Evaluation with model ${currentModel} failed`);
+      lastError = error;
+
+      if (verbose) {
+        console.warn(
+          `AI evaluation with model ${currentModel} failed: ${error.message}`,
+        );
+      }
+
+      if (modelIndex < models.length - 1 && verbose) {
+        console.log(`Trying next model: ${models[modelIndex + 1]}...`);
+      }
+    }
   }
+
+  // If we get here, all models failed
+  return handleAllModelsFailed(generationResults, lastError, verbose);
 }
