@@ -21,6 +21,11 @@ import {
 } from "../pp3-sections/section-manipulation.js";
 import { applySearchReplaceBlocks } from "../pp3-processing/search-replace.js";
 import { GenerationResult } from "../types.js";
+import {
+  calculateHistogramFromBuffer,
+  analyzeHistogram,
+  formatHistogramForLLM,
+} from "../utils/image-processing.js";
 
 /**
  * Generates AI response based on image and text
@@ -36,7 +41,30 @@ export async function generateAIResponse(
   try {
     if (verbose) {
       console.log(`Sending request to AI provider (${providerName})...`);
+      console.log("Calculating image histogram for enhanced analysis...");
     }
+
+    // Calculate histogram and analysis
+    let histogramText = "";
+    try {
+      const histogram = await calculateHistogramFromBuffer(imageData);
+      const analysis = analyzeHistogram(histogram);
+      histogramText = formatHistogramForLLM(histogram, analysis);
+      
+      if (verbose) {
+        console.log("Histogram analysis completed successfully");
+      }
+    } catch (histogramError) {
+      if (verbose) {
+        console.warn("Failed to calculate histogram, proceeding without histogram data:", histogramError);
+      }
+      // Continue without histogram data if calculation fails
+    }
+
+    // Combine original text with histogram analysis
+    const enhancedText = histogramText 
+      ? `${extractedText}\n\n${histogramText}`
+      : extractedText;
 
     const response = await generateText({
       model: aiProvider,
@@ -46,7 +74,7 @@ export async function generateAIResponse(
           content: [
             {
               type: "text",
-              text: extractedText,
+              text: enhancedText,
             },
             {
               type: "image",
@@ -197,8 +225,31 @@ export async function prepareImageContents(
   for (const result of successfulResults) {
     try {
       const imageData = await fs.promises.readFile(result.evaluationImagePath);
+      
+      // Calculate histogram for evaluation image
+      let histogramText = "";
+      try {
+        const histogram = await calculateHistogramFromBuffer(imageData);
+        const analysis = analyzeHistogram(histogram);
+        histogramText = formatHistogramForLLM(histogram, analysis);
+        
+        if (verbose) {
+          console.log(`Histogram analysis completed for generation ${displayIndex}`);
+        }
+      } catch (histogramError) {
+        if (verbose) {
+          console.warn(`Failed to calculate histogram for generation ${displayIndex}:`, histogramError);
+        }
+        // Continue without histogram data if calculation fails
+      }
+
+      // Add generation with histogram analysis
+      const generationText = histogramText 
+        ? `\n\nGeneration ${String(displayIndex)}:\n${histogramText}`
+        : `\n\nGeneration ${String(displayIndex)}:`;
+        
       imageContents.push(
-        { type: "text", text: `\n\nGeneration ${String(displayIndex)}:` },
+        { type: "text", text: generationText },
         { type: "image", image: imageData },
       );
       displayIndex++;
