@@ -62,9 +62,16 @@ describe("Windows platform tests", () => {
     await convertDngToImage(parameters);
 
     // Check that the arguments no longer include the Windows flag
-    expect(spawn).toHaveBeenCalledWith(
-      "rawtherapee-cli",
-      expect.not.arrayContaining(["-w"]),
-    );
+    const expectedArgs = [
+      "-Y",
+      "-O",
+      path.join(TEST_OUTPUT_DIR, "output.jpg"),
+      "-j90",
+      "-js3",
+      "-b16",
+      "-c",
+      TEST_INPUT_FILE,
+    ];
+    expect(spawn).toHaveBeenCalledWith("rawtherapee-cli", expectedArgs);
   });
 });
