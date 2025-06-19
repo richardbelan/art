@@ -153,7 +153,7 @@ function buildCliArguments({
   input: string;
 }) {
   const cliArguments = [
-    ...(os.platform() === "win32" ? ["-w"] : []),
+    // ...(os.platform() === "win32" ? ["-w"] : []),
     "-Y",
     pp3Path ? "-o" : "-O",
     output,

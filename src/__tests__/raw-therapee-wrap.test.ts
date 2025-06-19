@@ -97,7 +97,7 @@ it("convertDngToImage should throw error when output directory does not exist", 
   };
 
   await expect(convertDngToImage(parameters)).rejects.toThrow(
-    /Output directory does not exist/,
+    /Failed to create output directory/,
   );
 });
 
