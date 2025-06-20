@@ -1,5 +1,8 @@
 // Image processing utilities for histogram calculation and analysis
-import sharp from 'sharp';
+import sharp from "sharp";
+
+export type Brightness = "dark" | "normal" | "bright";
+export type Contrast = "low" | "normal" | "high";
 
 export interface ImageHistogram {
   red: number[];
@@ -22,8 +25,8 @@ export interface HistogramAnalysis {
   green: HistogramStats;
   blue: HistogramStats;
   overall: {
-    brightness: 'dark' | 'normal' | 'bright';
-    contrast: 'low' | 'normal' | 'high';
+    brightness: Brightness;
+    contrast: Contrast;
     colorCast: string;
     exposureIssues: string[];
   };
@@ -32,21 +35,34 @@ export interface HistogramAnalysis {
 /**
  * Calculate histogram for an image
  */
-export async function calculateHistogram(imagePath: string): Promise<ImageHistogram> {
+export async function calculateHistogram(
+  imagePath: string,
+): Promise<ImageHistogram> {
   try {
     const image = sharp(imagePath);
-    const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
+    const { data, info } = await image
+      .raw()
+      .toBuffer({ resolveWithObject: true });
 
-    // Initialize histogram arrays
-    const histogramR = new Array(256).fill(0);
-    const histogramG = new Array(256).fill(0);
-    const histogramB = new Array(256).fill(0);
+    // Initialize histogram arrays with proper typing
+    const histogramR: number[] = Array.from<number>({ length: 256 }).fill(0);
+    const histogramG: number[] = Array.from<number>({ length: 256 }).fill(0);
+    const histogramB: number[] = Array.from<number>({ length: 256 }).fill(0);
 
     // Calculate histogram
-    for (let i = 0; i < data.length; i += info.channels) {
-      histogramR[data[i]]++;
-      if (info.channels > 1) histogramG[data[i + 1]]++;
-      if (info.channels > 2) histogramB[data[i + 2]]++;
+    for (let index = 0; index < data.length; index += info.channels) {
+      const r = data[index];
+      histogramR[r]++;
+
+      if (info.channels > 1) {
+        const g = data[index + 1];
+        histogramG[g]++;
+      }
+
+      if (info.channels > 2) {
+        const b = data[index + 2];
+        histogramB[b]++;
+      }
     }
 
     return {
@@ -55,28 +71,43 @@ export async function calculateHistogram(imagePath: string): Promise<ImageHistog
       blue: histogramB,
     };
   } catch (error) {
-    throw new Error(`Error calculating histogram: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Error calculating histogram: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
 
 /**
  * Calculate histogram for image buffer
  */
-export async function calculateHistogramFromBuffer(imageBuffer: Buffer): Promise<ImageHistogram> {
+export async function calculateHistogramFromBuffer(
+  imageBuffer: Buffer,
+): Promise<ImageHistogram> {
   try {
     const image = sharp(imageBuffer);
-    const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
+    const { data, info } = await image
+      .raw()
+      .toBuffer({ resolveWithObject: true });
 
-    // Initialize histogram arrays
-    const histogramR = new Array(256).fill(0);
-    const histogramG = new Array(256).fill(0);
-    const histogramB = new Array(256).fill(0);
+    // Initialize histogram arrays with proper typing
+    const histogramR: number[] = Array.from<number>({ length: 256 }).fill(0);
+    const histogramG: number[] = Array.from<number>({ length: 256 }).fill(0);
+    const histogramB: number[] = Array.from<number>({ length: 256 }).fill(0);
 
     // Calculate histogram
-    for (let i = 0; i < data.length; i += info.channels) {
-      histogramR[data[i]]++;
-      if (info.channels > 1) histogramG[data[i + 1]]++;
-      if (info.channels > 2) histogramB[data[i + 2]]++;
+    for (let index = 0; index < data.length; index += info.channels) {
+      const r = data[index];
+      histogramR[r]++;
+
+      if (info.channels > 1) {
+        const g = data[index + 1];
+        histogramG[g]++;
+      }
+
+      if (info.channels > 2) {
+        const b = data[index + 2];
+        histogramB[b]++;
+      }
     }
 
     return {
@@ -85,8 +116,128 @@ export async function calculateHistogramFromBuffer(imageBuffer: Buffer): Promise
       blue: histogramB,
     };
   } catch (error) {
-    throw new Error(`Error calculating histogram from buffer: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Error calculating histogram from buffer: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
+}
+
+/**
+ * Calculate mean value for a histogram channel
+ */
+function calculateMean(histogram: number[], totalPixels: number): number {
+  let sum = 0;
+  for (const [index, element] of histogram.entries()) {
+    sum += index * element;
+  }
+  return sum / totalPixels;
+}
+
+/**
+ * Calculate median value for a histogram channel
+ */
+function calculateMedian(histogram: number[], totalPixels: number): number {
+  let cumulativeCount = 0;
+  const target = totalPixels / 2;
+  for (const [index, element] of histogram.entries()) {
+    cumulativeCount += element;
+    if (cumulativeCount >= target) {
+      return index;
+    }
+  }
+  return 0;
+}
+
+/**
+ * Calculate mode (most frequent value) for a histogram channel
+ */
+function calculateMode(histogram: number[]): number {
+  let mode = 0;
+  let maxCount = 0;
+  for (const [index, element] of histogram.entries()) {
+    if (element > maxCount) {
+      maxCount = element;
+      mode = index;
+    }
+  }
+  return mode;
+}
+
+/**
+ * Calculate standard deviation for a histogram channel
+ */
+function calculateStandardDeviation(
+  histogram: number[],
+  mean: number,
+  totalPixels: number,
+): number {
+  let variance = 0;
+  for (const [index, element] of histogram.entries()) {
+    variance += element * Math.pow(index - mean, 2);
+  }
+  variance /= totalPixels;
+  return Math.sqrt(variance);
+}
+
+/**
+ * Calculate skewness for a histogram channel
+ */
+function calculateSkewness(
+  histogram: number[],
+  mean: number,
+  standardDeviation: number,
+  totalPixels: number,
+): number {
+  let skewness = 0;
+  for (const [index, element] of histogram.entries()) {
+    skewness += element * Math.pow((index - mean) / standardDeviation, 3);
+  }
+  return skewness / totalPixels;
+}
+
+/**
+ * Count peaks (local maxima) in a histogram channel
+ */
+function countPeaks(histogram: number[], totalPixels: number): number {
+  let peakCount = 0;
+  const threshold = totalPixels * 0.001;
+
+  for (let index = 1; index < histogram.length - 1; index++) {
+    if (
+      histogram[index] > histogram[index - 1] &&
+      histogram[index] > histogram[index + 1] &&
+      histogram[index] > threshold
+    ) {
+      peakCount++;
+    }
+  }
+  return peakCount;
+}
+
+/**
+ * Calculate dynamic range of a histogram channel
+ */
+function calculateDynamicRange(histogram: number[]): number {
+  let minValue = 0;
+  let maxValue = 255;
+
+  // Find first non-zero value from start
+  for (const [index, element] of histogram.entries()) {
+    if (element > 0) {
+      minValue = index;
+      break;
+    }
+  }
+
+  // Find last non-zero value from end
+  for (let index = histogram.length - 1; index >= 0; index--) {
+    if (histogram[index] > 0) {
+      maxValue = index;
+      break;
+    }
+  }
+
+  return maxValue - minValue;
 }
 
 /**
@@ -94,161 +245,165 @@ export async function calculateHistogramFromBuffer(imageBuffer: Buffer): Promise
  */
 function calculateChannelStats(histogram: number[]): HistogramStats {
   const totalPixels = histogram.reduce((sum, count) => sum + count, 0);
-  
-  // Mean
-  let mean = 0;
-  for (let i = 0; i < histogram.length; i++) {
-    mean += i * histogram[i];
-  }
-  mean /= totalPixels;
-
-  // Median
-  let cumulativeCount = 0;
-  let median = 0;
-  for (let i = 0; i < histogram.length; i++) {
-    cumulativeCount += histogram[i];
-    if (cumulativeCount >= totalPixels / 2) {
-      median = i;
-      break;
-    }
-  }
-
-  // Mode (most frequent value)
-  let mode = 0;
-  let maxCount = 0;
-  for (let i = 0; i < histogram.length; i++) {
-    if (histogram[i] > maxCount) {
-      maxCount = histogram[i];
-      mode = i;
-    }
-  }
-
-  // Standard deviation
-  let variance = 0;
-  for (let i = 0; i < histogram.length; i++) {
-    variance += histogram[i] * Math.pow(i - mean, 2);
-  }
-  variance /= totalPixels;
-  const standardDeviation = Math.sqrt(variance);
-
-  // Skewness
-  let skewness = 0;
-  for (let i = 0; i < histogram.length; i++) {
-    skewness += histogram[i] * Math.pow((i - mean) / standardDeviation, 3);
-  }
-  skewness /= totalPixels;
-
-  // Peak count (number of local maxima)
-  let peakCount = 0;
-  for (let i = 1; i < histogram.length - 1; i++) {
-    if (histogram[i] > histogram[i - 1] && histogram[i] > histogram[i + 1] && histogram[i] > totalPixels * 0.001) {
-      peakCount++;
-    }
-  }
-
-  // Dynamic range (difference between highest and lowest non-zero values)
-  let minValue = 0;
-  let maxValue = 255;
-  for (let i = 0; i < histogram.length; i++) {
-    if (histogram[i] > 0) {
-      minValue = i;
-      break;
-    }
-  }
-  for (let i = histogram.length - 1; i >= 0; i--) {
-    if (histogram[i] > 0) {
-      maxValue = i;
-      break;
-    }
-  }
-  const dynamicRange = maxValue - minValue;
+  const mean = calculateMean(histogram, totalPixels);
+  const standardDeviation = calculateStandardDeviation(
+    histogram,
+    mean,
+    totalPixels,
+  );
 
   return {
     mean,
-    median,
-    mode,
+    median: calculateMedian(histogram, totalPixels),
+    mode: calculateMode(histogram),
     standardDeviation,
-    skewness,
-    peakCount,
-    dynamicRange,
+    skewness: calculateSkewness(
+      histogram,
+      mean,
+      standardDeviation,
+      totalPixels,
+    ),
+    peakCount: countPeaks(histogram, totalPixels),
+    dynamicRange: calculateDynamicRange(histogram),
   };
+}
+
+/**
+ * Determine image brightness based on channel means
+ */
+function determineBrightness(
+  redStats: HistogramStats,
+  greenStats: HistogramStats,
+  blueStats: HistogramStats,
+): "dark" | "normal" | "bright" {
+  const avgMean = (redStats.mean + greenStats.mean + blueStats.mean) / 3;
+  if (avgMean < 85) return "dark";
+  if (avgMean > 170) return "bright";
+  return "normal";
+}
+
+/**
+ * Determine image contrast based on standard deviations
+ */
+function determineContrast(
+  redStats: HistogramStats,
+  greenStats: HistogramStats,
+  blueStats: HistogramStats,
+): "low" | "normal" | "high" {
+  const avgStdDevelopment =
+    (redStats.standardDeviation +
+      greenStats.standardDeviation +
+      blueStats.standardDeviation) /
+    3;
+
+  if (avgStdDevelopment < 40) return "low";
+  if (avgStdDevelopment > 80) return "high";
+  return "normal";
+}
+
+/**
+ * Detect color cast based on channel means
+ */
+function detectColorCast(
+  redMean: number,
+  greenMean: number,
+  blueMean: number,
+  threshold = 10,
+): string {
+  if (redMean > greenMean + threshold && redMean > blueMean + threshold) {
+    return "warm/red cast";
+  }
+  if (blueMean > redMean + threshold && blueMean > greenMean + threshold) {
+    return "cool/blue cast";
+  }
+  if (greenMean > redMean + threshold && greenMean > blueMean + threshold) {
+    return "green cast";
+  }
+  if (redMean > blueMean + threshold && greenMean > blueMean + threshold) {
+    return "yellow cast";
+  }
+  if (blueMean > redMean + threshold && greenMean > redMean + threshold) {
+    return "cyan cast";
+  }
+  if (redMean > greenMean + threshold && blueMean > greenMean + threshold) {
+    return "magenta cast";
+  }
+  return "neutral";
+}
+
+/**
+ * Detect exposure issues in the histogram
+ */
+function detectExposureIssues(
+  histogram: ImageHistogram,
+  totalPixels: number,
+): string[] {
+  const issues: string[] = [];
+  const pixelThreshold = 0.01; // 1% threshold for clipping
+  const exposureThreshold = 0.4; // 40% threshold for under/overexposure
+
+  // Check for highlight clipping (values at 255)
+  const highlightPixels =
+    (histogram.red[255] + histogram.green[255] + histogram.blue[255]) / 3;
+  const highlightRatio = highlightPixels / totalPixels;
+  if (highlightRatio > pixelThreshold) {
+    issues.push("highlight clipping detected");
+  }
+
+  // Check for shadow clipping (values at 0)
+  const shadowPixels =
+    (histogram.red[0] + histogram.green[0] + histogram.blue[0]) / 3;
+  const shadowRatio = shadowPixels / totalPixels;
+  if (shadowRatio > pixelThreshold) {
+    issues.push("shadow clipping detected");
+  }
+
+  // Check for underexposure (too much data in shadows 0-63)
+  const shadowData = [
+    histogram.red.slice(0, 64).reduce((sum, count) => sum + count, 0),
+    histogram.green.slice(0, 64).reduce((sum, count) => sum + count, 0),
+    histogram.blue.slice(0, 64).reduce((sum, count) => sum + count, 0),
+  ].reduce((sum, count) => sum + count, 0);
+
+  if (shadowData / 3 / totalPixels > exposureThreshold) {
+    issues.push("possible underexposure");
+  }
+
+  // Check for overexposure (too much data in highlights 192-255)
+  const highlightData = [
+    histogram.red.slice(192, 256).reduce((sum, count) => sum + count, 0),
+    histogram.green.slice(192, 256).reduce((sum, count) => sum + count, 0),
+    histogram.blue.slice(192, 256).reduce((sum, count) => sum + count, 0),
+  ].reduce((sum, count) => sum + count, 0);
+
+  if (highlightData / 3 / totalPixels > exposureThreshold) {
+    issues.push("possible overexposure");
+  }
+
+  return issues;
 }
 
 /**
  * Analyze histogram to provide insights about the image
  */
 export function analyzeHistogram(histogram: ImageHistogram): HistogramAnalysis {
+  // Calculate statistics for each color channel
   const redStats = calculateChannelStats(histogram.red);
   const greenStats = calculateChannelStats(histogram.green);
   const blueStats = calculateChannelStats(histogram.blue);
 
-  // Overall brightness assessment
-  const avgMean = (redStats.mean + greenStats.mean + blueStats.mean) / 3;
-  let brightness: 'dark' | 'normal' | 'bright';
-  if (avgMean < 85) brightness = 'dark';
-  else if (avgMean > 170) brightness = 'bright';
-  else brightness = 'normal';
-
-  // Contrast assessment
-  const avgStdDev = (redStats.standardDeviation + greenStats.standardDeviation + blueStats.standardDeviation) / 3;
-  let contrast: 'low' | 'normal' | 'high';
-  if (avgStdDev < 40) contrast = 'low';
-  else if (avgStdDev > 80) contrast = 'high';
-  else contrast = 'normal';
-
-  // Color cast detection
-  const redMean = redStats.mean;
-  const greenMean = greenStats.mean;
-  const blueMean = blueStats.mean;
-  
-  let colorCast = 'neutral';
-  const threshold = 10;
-  
-  if (redMean > greenMean + threshold && redMean > blueMean + threshold) {
-    colorCast = 'warm/red cast';
-  } else if (blueMean > redMean + threshold && blueMean > greenMean + threshold) {
-    colorCast = 'cool/blue cast';
-  } else if (greenMean > redMean + threshold && greenMean > blueMean + threshold) {
-    colorCast = 'green cast';
-  } else if (redMean > blueMean + threshold && greenMean > blueMean + threshold) {
-    colorCast = 'yellow cast';
-  } else if (blueMean > redMean + threshold && greenMean > redMean + threshold) {
-    colorCast = 'cyan cast';
-  } else if (redMean > greenMean + threshold && blueMean > greenMean + threshold) {
-    colorCast = 'magenta cast';
-  }
-
-  // Exposure issues detection
-  const exposureIssues: string[] = [];
-  
-  // Check for clipped highlights (values at 255)
+  // Calculate total pixels for exposure analysis
   const totalPixels = histogram.red.reduce((sum, count) => sum + count, 0);
-  const highlightClipping = (histogram.red[255] + histogram.green[255] + histogram.blue[255]) / (3 * totalPixels);
-  if (highlightClipping > 0.01) { // More than 1% clipped
-    exposureIssues.push('highlight clipping detected');
-  }
 
-  // Check for blocked shadows (values at 0)
-  const shadowClipping = (histogram.red[0] + histogram.green[0] + histogram.blue[0]) / (3 * totalPixels);
-  if (shadowClipping > 0.01) { // More than 1% blocked
-    exposureIssues.push('shadow clipping detected');
-  }
-
-  // Check for underexposure (too much data in shadows)
-  const shadowData = histogram.red.slice(0, 64).reduce((sum, count) => sum + count, 0) +
-                    histogram.green.slice(0, 64).reduce((sum, count) => sum + count, 0) +
-                    histogram.blue.slice(0, 64).reduce((sum, count) => sum + count, 0);
-  if (shadowData / (3 * totalPixels) > 0.4) {
-    exposureIssues.push('possible underexposure');
-  }
-
-  // Check for overexposure (too much data in highlights)
-  const highlightData = histogram.red.slice(192, 256).reduce((sum, count) => sum + count, 0) +
-                       histogram.green.slice(192, 256).reduce((sum, count) => sum + count, 0) +
-                       histogram.blue.slice(192, 256).reduce((sum, count) => sum + count, 0);
-  if (highlightData / (3 * totalPixels) > 0.4) {
-    exposureIssues.push('possible overexposure');
-  }
+  // Perform analysis using helper functions
+  const brightness = determineBrightness(redStats, greenStats, blueStats);
+  const contrast = determineContrast(redStats, greenStats, blueStats);
+  const colorCast = detectColorCast(
+    redStats.mean,
+    greenStats.mean,
+    blueStats.mean,
+  );
+  const exposureIssues = detectExposureIssues(histogram, totalPixels);
 
   return {
     red: redStats,
@@ -264,32 +419,54 @@ export function analyzeHistogram(histogram: ImageHistogram): HistogramAnalysis {
 }
 
 /**
+ * Format histogram statistics for a single channel
+ */
+function formatStats(stats: HistogramStats, channel: string): string {
+  let skewnessDescription: string;
+  if (stats.skewness > 0) {
+    skewnessDescription = "right-skewed";
+  } else if (stats.skewness < 0) {
+    skewnessDescription = "left-skewed";
+  } else {
+    skewnessDescription = "symmetric";
+  }
+
+  return `${channel} Channel:
+- Mean: ${stats.mean.toFixed(1)} (0-255 scale)
+- Median: ${String(stats.median)}
+- Mode: ${String(stats.mode)}
+- Standard Deviation: ${stats.standardDeviation.toFixed(1)}
+- Skewness: ${stats.skewness.toFixed(2)} (${skewnessDescription})
+- Peak Count: ${String(stats.peakCount)}
+- Dynamic Range: ${String(stats.dynamicRange)}`;
+}
+
+/**
+ * Format histogram distribution for a single channel
+ */
+function formatDistribution(histogram: number[], channel: string): string {
+  const total = histogram.reduce((sum, count) => sum + count, 0);
+  const shadows = histogram.slice(0, 85).reduce((sum, count) => sum + count, 0);
+  const midtones = histogram
+    .slice(85, 170)
+    .reduce((sum, count) => sum + count, 0);
+  const highlights = histogram
+    .slice(170, 256)
+    .reduce((sum, count) => sum + count, 0);
+
+  return `${channel} Distribution:
+- Shadows (0-84): ${((shadows / total) * 100).toFixed(1)}%
+- Midtones (85-169): ${((midtones / total) * 100).toFixed(1)}%
+- Highlights (170-255): ${((highlights / total) * 100).toFixed(1)}%`;
+}
+
+/**
  * Format histogram data for LLM consumption
  */
-export function formatHistogramForLLM(histogram: ImageHistogram, analysis: HistogramAnalysis): string {
-  const formatStats = (stats: HistogramStats, channel: string) => {
-    return `${channel} Channel:
-- Mean: ${stats.mean.toFixed(1)} (0-255 scale)
-- Median: ${stats.median}
-- Mode: ${stats.mode}
-- Standard Deviation: ${stats.standardDeviation.toFixed(1)}
-- Skewness: ${stats.skewness.toFixed(2)} (${stats.skewness > 0 ? 'right-skewed' : stats.skewness < 0 ? 'left-skewed' : 'symmetric'})
-- Peak Count: ${stats.peakCount}
-- Dynamic Range: ${stats.dynamicRange}`;
-  };
-
-  const formatDistribution = (histogram: number[], channel: string) => {
-    const total = histogram.reduce((sum, count) => sum + count, 0);
-    const shadows = histogram.slice(0, 85).reduce((sum, count) => sum + count, 0);
-    const midtones = histogram.slice(85, 170).reduce((sum, count) => sum + count, 0);
-    const highlights = histogram.slice(170, 256).reduce((sum, count) => sum + count, 0);
-    
-    return `${channel} Distribution:
-- Shadows (0-84): ${(shadows / total * 100).toFixed(1)}%
-- Midtones (85-169): ${(midtones / total * 100).toFixed(1)}%
-- Highlights (170-255): ${(highlights / total * 100).toFixed(1)}%`;
-  };
-
+export function formatHistogramForLLM(
+  histogram: ImageHistogram,
+  analysis: HistogramAnalysis,
+): string {
   return `
 IMAGE HISTOGRAM ANALYSIS:
 
@@ -297,23 +474,23 @@ OVERALL ASSESSMENT:
 - Brightness: ${analysis.overall.brightness}
 - Contrast: ${analysis.overall.contrast}
 - Color Cast: ${analysis.overall.colorCast}
-- Exposure Issues: ${analysis.overall.exposureIssues.length > 0 ? analysis.overall.exposureIssues.join(', ') : 'none detected'}
+- Exposure Issues: ${analysis.overall.exposureIssues.length > 0 ? analysis.overall.exposureIssues.join(", ") : "none detected"}
 
 DETAILED STATISTICS:
 
-${formatStats(analysis.red, 'Red')}
+${formatStats(analysis.red, "Red")}
 
-${formatStats(analysis.green, 'Green')}
+${formatStats(analysis.green, "Green")}
 
-${formatStats(analysis.blue, 'Blue')}
+${formatStats(analysis.blue, "Blue")}
 
 TONAL DISTRIBUTION:
 
-${formatDistribution(histogram.red, 'Red')}
+${formatDistribution(histogram.red, "Red")}
 
-${formatDistribution(histogram.green, 'Green')}
+${formatDistribution(histogram.green, "Green")}
 
-${formatDistribution(histogram.blue, 'Blue')}
+${formatDistribution(histogram.blue, "Blue")}
 
 PROCESSING RECOMMENDATIONS BASED ON HISTOGRAM:
 ${generateProcessingRecommendations(analysis)}
@@ -321,63 +498,155 @@ ${generateProcessingRecommendations(analysis)}
 }
 
 /**
- * Generate processing recommendations based on histogram analysis
+ * Get brightness-related recommendations
  */
-function generateProcessingRecommendations(analysis: HistogramAnalysis): string {
+function getBrightnessRecommendations(
+  brightness: "dark" | "normal" | "bright",
+): string[] {
   const recommendations: string[] = [];
 
-  // Brightness recommendations
-  if (analysis.overall.brightness === 'dark') {
-    recommendations.push('- Consider increasing exposure compensation (+0.3 to +1.0)');
-    recommendations.push('- Lift shadows to reveal detail in dark areas');
-  } else if (analysis.overall.brightness === 'bright') {
-    recommendations.push('- Consider decreasing exposure compensation (-0.3 to -1.0)');
-    recommendations.push('- Recover highlights to prevent clipping');
+  if (brightness === "dark") {
+    recommendations.push(
+      "- Consider increasing exposure compensation (+0.3 to +1.0)",
+      "- Lift shadows to reveal detail in dark areas",
+    );
+  } else if (brightness === "bright") {
+    recommendations.push(
+      "- Consider decreasing exposure compensation (-0.3 to -1.0)",
+      "- Recover highlights to prevent clipping",
+    );
   }
 
-  // Contrast recommendations
-  if (analysis.overall.contrast === 'low') {
-    recommendations.push('- Increase contrast to add punch to the image');
-    recommendations.push('- Consider using local contrast enhancement');
-  } else if (analysis.overall.contrast === 'high') {
-    recommendations.push('- Reduce contrast to prevent harsh transitions');
-    recommendations.push('- Use shadow/highlight recovery to balance tones');
+  return recommendations;
+}
+
+/**
+ * Get contrast-related recommendations
+ */
+function getContrastRecommendations(
+  contrast: "low" | "normal" | "high",
+): string[] {
+  const recommendations: string[] = [];
+
+  if (contrast === "low") {
+    recommendations.push(
+      "- Increase contrast to add punch to the image",
+      "- Consider using local contrast enhancement",
+    );
+  } else if (contrast === "high") {
+    recommendations.push(
+      "- Reduce contrast to prevent harsh transitions",
+      "- Use shadow/highlight recovery to balance tones",
+    );
   }
 
-  // Color cast recommendations
-  if (analysis.overall.colorCast !== 'neutral') {
-    if (analysis.overall.colorCast.includes('warm') || analysis.overall.colorCast.includes('red')) {
-      recommendations.push('- Adjust white balance: decrease temperature or increase green tint');
-    } else if (analysis.overall.colorCast.includes('cool') || analysis.overall.colorCast.includes('blue')) {
-      recommendations.push('- Adjust white balance: increase temperature or decrease green tint');
-    } else if (analysis.overall.colorCast.includes('green')) {
-      recommendations.push('- Adjust white balance: decrease green tint (move toward magenta)');
-    } else if (analysis.overall.colorCast.includes('magenta')) {
-      recommendations.push('- Adjust white balance: increase green tint');
-    }
+  return recommendations;
+}
+
+/**
+ * Get color cast-related recommendations
+ */
+function getColorCastRecommendations(colorCast: string): string[] {
+  const recommendations: string[] = [];
+
+  if (colorCast === "neutral") {
+    return recommendations;
   }
 
-  // Exposure issue recommendations
-  analysis.overall.exposureIssues.forEach(issue => {
-    if (issue.includes('highlight clipping')) {
-      recommendations.push('- Reduce exposure or use highlight recovery to restore clipped highlights');
-    }
-    if (issue.includes('shadow clipping')) {
-      recommendations.push('- Increase exposure or lift shadows to restore blocked shadows');
-    }
-    if (issue.includes('underexposure')) {
-      recommendations.push('- Increase overall exposure and consider shadow lifting');
-    }
-    if (issue.includes('overexposure')) {
-      recommendations.push('- Decrease overall exposure and use highlight recovery');
-    }
-  });
+  if (colorCast.includes("warm") || colorCast.includes("red")) {
+    recommendations.push(
+      "- Adjust white balance: decrease temperature or increase green tint",
+    );
+  } else if (colorCast.includes("cool") || colorCast.includes("blue")) {
+    recommendations.push(
+      "- Adjust white balance: increase temperature or decrease green tint",
+    );
+  } else if (colorCast.includes("green")) {
+    recommendations.push(
+      "- Adjust white balance: decrease green tint (move toward magenta)",
+    );
+  } else if (colorCast.includes("magenta")) {
+    recommendations.push("- Adjust white balance: increase green tint");
+  }
 
-  // Dynamic range recommendations
-  const avgDynamicRange = (analysis.red.dynamicRange + analysis.green.dynamicRange + analysis.blue.dynamicRange) / 3;
+  return recommendations;
+}
+
+/**
+ * Get exposure issue-related recommendations
+ */
+function getExposureIssueRecommendations(issue: string): string[] {
+  const recommendations: string[] = [];
+
+  if (issue.includes("highlight clipping")) {
+    recommendations.push(
+      "- Reduce exposure or use highlight recovery to restore clipped highlights",
+    );
+  }
+  if (issue.includes("shadow clipping")) {
+    recommendations.push(
+      "- Increase exposure or lift shadows to restore blocked shadows",
+    );
+  }
+  if (issue.includes("underexposure")) {
+    recommendations.push(
+      "- Increase overall exposure and consider shadow lifting",
+    );
+  }
+  if (issue.includes("overexposure")) {
+    recommendations.push(
+      "- Decrease overall exposure and use highlight recovery",
+    );
+  }
+
+  return recommendations;
+}
+
+/**
+ * Get dynamic range-related recommendations
+ */
+function getDynamicRangeRecommendations(
+  red: HistogramStats,
+  green: HistogramStats,
+  blue: HistogramStats,
+): string[] {
+  const avgDynamicRange =
+    (red.dynamicRange + green.dynamicRange + blue.dynamicRange) / 3;
+
   if (avgDynamicRange < 200) {
-    recommendations.push('- Limited dynamic range detected - consider increasing contrast carefully');
+    return [
+      "- Limited dynamic range detected - consider increasing contrast carefully",
+    ];
   }
 
-  return recommendations.length > 0 ? recommendations.join('\n') : '- Image appears well-exposed with good tonal distribution';
+  return [];
+}
+
+/**
+ * Generate processing recommendations based on histogram analysis
+ */
+function generateProcessingRecommendations(
+  analysis: HistogramAnalysis,
+): string {
+  // Combine all recommendations
+  const recommendations = [
+    ...getBrightnessRecommendations(analysis.overall.brightness),
+    ...getContrastRecommendations(analysis.overall.contrast),
+    ...getColorCastRecommendations(analysis.overall.colorCast),
+    // Add exposure issue recommendations
+    ...analysis.overall.exposureIssues.flatMap((issue) =>
+      getExposureIssueRecommendations(issue),
+    ),
+    // Add dynamic range recommendations
+    ...getDynamicRangeRecommendations(
+      analysis.red,
+      analysis.green,
+      analysis.blue,
+    ),
+  ];
+
+  // Return the final recommendations or a default message
+  return recommendations.length > 0
+    ? recommendations.join("\n")
+    : "- Image appears well-exposed with good tonal distribution";
 }

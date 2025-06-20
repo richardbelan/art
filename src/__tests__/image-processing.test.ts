@@ -1,21 +1,25 @@
 // Tests for image processing utilities
-import { describe, it, expect } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
+import { describe, it, expect } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import {
   calculateHistogramFromBuffer,
   analyzeHistogram,
   formatHistogramForLLM,
-} from '../utils/image-processing.js';
+} from "../utils/image-processing.js";
 
-describe('Image Processing', () => {
+describe("Image Processing", () => {
   // Skip tests if test image doesn't exist
-  const testImagePath = path.join(process.cwd(), 'test-temp', 'test_histogram.jpg');
+  const testImagePath = path.join(
+    process.cwd(),
+    "test-temp",
+    "test_histogram.jpg",
+  );
   const hasTestImage = fs.existsSync(testImagePath);
 
-  it('should calculate histogram from buffer', async () => {
+  it("should calculate histogram from buffer", async () => {
     if (!hasTestImage) {
-      console.log('Skipping histogram test - no test image available');
+      console.log("Skipping histogram test - no test image available");
       return;
     }
 
@@ -37,9 +41,9 @@ describe('Image Processing', () => {
     expect(totalBlue).toBeGreaterThan(0);
   });
 
-  it('should analyze histogram correctly', async () => {
+  it("should analyze histogram correctly", async () => {
     if (!hasTestImage) {
-      console.log('Skipping histogram analysis test - no test image available');
+      console.log("Skipping histogram analysis test - no test image available");
       return;
     }
 
@@ -55,17 +59,17 @@ describe('Image Processing', () => {
 
     expect(analysis.overall.brightness).toMatch(/^(dark|normal|bright)$/);
     expect(analysis.overall.contrast).toMatch(/^(low|normal|high)$/);
-    expect(typeof analysis.overall.colorCast).toBe('string');
+    expect(typeof analysis.overall.colorCast).toBe("string");
     expect(Array.isArray(analysis.overall.exposureIssues)).toBe(true);
 
     // Check statistical measures
-    expect(typeof analysis.red.mean).toBe('number');
-    expect(typeof analysis.red.median).toBe('number');
-    expect(typeof analysis.red.mode).toBe('number');
-    expect(typeof analysis.red.standardDeviation).toBe('number');
-    expect(typeof analysis.red.skewness).toBe('number');
-    expect(typeof analysis.red.peakCount).toBe('number');
-    expect(typeof analysis.red.dynamicRange).toBe('number');
+    expect(typeof analysis.red.mean).toBe("number");
+    expect(typeof analysis.red.median).toBe("number");
+    expect(typeof analysis.red.mode).toBe("number");
+    expect(typeof analysis.red.standardDeviation).toBe("number");
+    expect(typeof analysis.red.skewness).toBe("number");
+    expect(typeof analysis.red.peakCount).toBe("number");
+    expect(typeof analysis.red.dynamicRange).toBe("number");
 
     expect(analysis.red.mean).toBeGreaterThanOrEqual(0);
     expect(analysis.red.mean).toBeLessThanOrEqual(255);
@@ -73,9 +77,11 @@ describe('Image Processing', () => {
     expect(analysis.red.median).toBeLessThanOrEqual(255);
   });
 
-  it('should format histogram for LLM correctly', async () => {
+  it("should format histogram for LLM correctly", async () => {
     if (!hasTestImage) {
-      console.log('Skipping histogram formatting test - no test image available');
+      console.log(
+        "Skipping histogram formatting test - no test image available",
+      );
       return;
     }
 
@@ -84,31 +90,31 @@ describe('Image Processing', () => {
     const analysis = analyzeHistogram(histogram);
     const formatted = formatHistogramForLLM(histogram, analysis);
 
-    expect(typeof formatted).toBe('string');
+    expect(typeof formatted).toBe("string");
     expect(formatted.length).toBeGreaterThan(0);
 
     // Check that key sections are present
-    expect(formatted).toContain('IMAGE HISTOGRAM ANALYSIS');
-    expect(formatted).toContain('OVERALL ASSESSMENT');
-    expect(formatted).toContain('DETAILED STATISTICS');
-    expect(formatted).toContain('TONAL DISTRIBUTION');
-    expect(formatted).toContain('PROCESSING RECOMMENDATIONS');
+    expect(formatted).toContain("IMAGE HISTOGRAM ANALYSIS");
+    expect(formatted).toContain("OVERALL ASSESSMENT");
+    expect(formatted).toContain("DETAILED STATISTICS");
+    expect(formatted).toContain("TONAL DISTRIBUTION");
+    expect(formatted).toContain("PROCESSING RECOMMENDATIONS");
 
     // Check that channel information is present
-    expect(formatted).toContain('Red Channel');
-    expect(formatted).toContain('Green Channel');
-    expect(formatted).toContain('Blue Channel');
+    expect(formatted).toContain("Red Channel");
+    expect(formatted).toContain("Green Channel");
+    expect(formatted).toContain("Blue Channel");
 
     // Check that statistical measures are included
-    expect(formatted).toContain('Mean:');
-    expect(formatted).toContain('Median:');
-    expect(formatted).toContain('Standard Deviation:');
+    expect(formatted).toContain("Mean:");
+    expect(formatted).toContain("Median:");
+    expect(formatted).toContain("Standard Deviation:");
   });
 
-  it('should handle errors gracefully', async () => {
+  it("should handle errors gracefully", async () => {
     // Test with invalid buffer
-    const invalidBuffer = Buffer.from('not an image');
-    
+    const invalidBuffer = Buffer.from("not an image");
+
     await expect(calculateHistogramFromBuffer(invalidBuffer)).rejects.toThrow();
   });
 });

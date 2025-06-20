@@ -26,6 +26,7 @@ vi.mock("node:fs", () => ({
       writeFile: vi.fn(),
       unlink: vi.fn(),
       access: vi.fn(),
+      mkdir: vi.fn(),
     },
   },
 }));
@@ -238,6 +239,7 @@ describe("Multi-generation PP3 Processing", () => {
         : Promise.resolve(Buffer.from("mock image data"));
     });
     vi.mocked(fs.promises.writeFile).mockResolvedValue();
+    vi.mocked(fs.promises.mkdir).mockResolvedValue(undefined);
     vi.mocked(fs.promises.unlink).mockResolvedValue();
     vi.mocked(fs.promises.access).mockResolvedValue();
 

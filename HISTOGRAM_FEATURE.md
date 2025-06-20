@@ -7,6 +7,7 @@ The AI-PP3 tool now includes automatic histogram calculation and analysis for al
 ## What's New
 
 ### Automatic Histogram Calculation
+
 - **RGB Channel Analysis**: Calculates separate histograms for Red, Green, and Blue channels
 - **Statistical Measures**: Computes mean, median, mode, standard deviation, skewness, peak count, and dynamic range for each channel
 - **Tonal Distribution**: Analyzes shadow, midtone, and highlight distribution
@@ -14,7 +15,9 @@ The AI-PP3 tool now includes automatic histogram calculation and analysis for al
 - **Color Cast Detection**: Identifies color temperature and tint issues
 
 ### Enhanced AI Prompts
+
 Before sending images to AI models, the tool now automatically:
+
 1. Calculates the image histogram using Sharp.js
 2. Analyzes the histogram data for technical insights
 3. Formats the analysis in a structured, LLM-friendly format
@@ -58,49 +61,61 @@ PROCESSING RECOMMENDATIONS BASED ON HISTOGRAM:
 ## Technical Implementation
 
 ### Dependencies Added
+
 - **sharp**: High-performance image processing library for Node.js
 - **@types/sharp**: TypeScript definitions for Sharp
 
 ### New Files
+
 - `src/utils/image-processing.ts`: Core histogram calculation and analysis functions
 - `src/__tests__/image-processing.test.ts`: Comprehensive test suite
 
 ### Modified Files
+
 - `src/ai-generation/ai-processor.ts`: Enhanced to include histogram analysis in AI requests
 - `package.json`: Added Sharp dependency
 
 ### Key Functions
 
 #### `calculateHistogramFromBuffer(imageBuffer: Buffer): Promise<ImageHistogram>`
+
 Calculates RGB histograms from an image buffer.
 
 #### `analyzeHistogram(histogram: ImageHistogram): HistogramAnalysis`
+
 Performs statistical analysis and technical assessment of histogram data.
 
 #### `formatHistogramForLLM(histogram: ImageHistogram, analysis: HistogramAnalysis): string`
+
 Formats histogram data and analysis in a structured format optimized for LLM consumption.
 
 ## Benefits for AI Processing
 
 ### More Informed Decisions
+
 AI models now receive:
+
 - **Quantitative Data**: Precise statistical measures instead of just visual information
 - **Technical Context**: Understanding of exposure, contrast, and color balance issues
 - **Processing Hints**: Specific recommendations based on histogram analysis
 
 ### Better PP3 Generation
+
 The enhanced prompts lead to:
+
 - **More Accurate Adjustments**: AI can make precise parameter changes based on histogram data
 - **Targeted Corrections**: Specific fixes for detected issues (clipping, color casts, etc.)
 - **Consistent Results**: More predictable outcomes across different images
 
 ### Example Impact
+
 **Before**: "This image looks a bit dark"
 **After**: "Red channel mean: 85.2, shadows contain 45.3% of data, possible underexposure detected - recommend increasing exposure compensation +0.5 to +1.0"
 
 ## Error Handling
 
 The histogram feature is designed to be robust:
+
 - **Graceful Degradation**: If histogram calculation fails, processing continues without histogram data
 - **Format Support**: Works with all image formats supported by Sharp (JPEG, PNG, TIFF, WebP, etc.)
 - **Memory Efficient**: Processes images in streaming fashion to handle large files
@@ -114,6 +129,7 @@ The histogram feature is designed to be robust:
 ## Future Enhancements
 
 Potential improvements for future versions:
+
 - **Histogram Caching**: Store calculated histograms to avoid recalculation
 - **Advanced Analysis**: Include entropy, contrast metrics, and color space analysis
 - **Visual Histogram**: Generate histogram charts for debugging and visualization
@@ -122,12 +138,14 @@ Potential improvements for future versions:
 ## Testing
 
 The feature includes comprehensive tests covering:
+
 - Histogram calculation accuracy
 - Statistical analysis correctness
 - LLM formatting consistency
 - Error handling scenarios
 
 Run tests with:
+
 ```bash
 npm test -- image-processing
 ```
@@ -135,6 +153,7 @@ npm test -- image-processing
 ## Demo
 
 A demonstration script is available to see the histogram analysis in action:
+
 ```bash
 node demo-histogram.js
 ```

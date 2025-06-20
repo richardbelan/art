@@ -1,5 +1,4 @@
 import spawn from "nano-spawn";
-import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -152,11 +151,7 @@ function buildCliArguments({
   pp3Path?: string;
   input: string;
 }) {
-  const cliArguments = [
-    "-Y",
-    pp3Path ? "-o" : "-O",
-    output,
-  ];
+  const cliArguments = ["-Y", pp3Path ? "-o" : "-O", output];
   switch (format) {
     case "jpeg": {
       cliArguments.push(

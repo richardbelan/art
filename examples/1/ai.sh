@@ -1,1 +1,1 @@
-ai-pp3 IMG_0080.CR2 --model google/gemini-2.5-pro-exp-03-25:free --provider openrouter --base IMG_0080.CR2.pp3 -o ai.pp3 --preview-quality 90
+ai-pp3 IMG_0080.CR2 --model meta-llama/llama-4-maverick:free --provider openrouter -o ai.pp3 --preview-quality 90

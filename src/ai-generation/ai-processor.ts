@@ -50,19 +50,22 @@ export async function generateAIResponse(
       const histogram = await calculateHistogramFromBuffer(imageData);
       const analysis = analyzeHistogram(histogram);
       histogramText = formatHistogramForLLM(histogram, analysis);
-      
+
       if (verbose) {
         console.log("Histogram analysis completed successfully");
       }
     } catch (histogramError) {
       if (verbose) {
-        console.warn("Failed to calculate histogram, proceeding without histogram data:", histogramError);
+        console.warn(
+          "Failed to calculate histogram, proceeding without histogram data:",
+          histogramError,
+        );
       }
       // Continue without histogram data if calculation fails
     }
 
     // Combine original text with histogram analysis
-    const enhancedText = histogramText 
+    const enhancedText = histogramText
       ? `${extractedText}\n\n${histogramText}`
       : extractedText;
 
@@ -195,6 +198,74 @@ export async function processAIGeneration(
 }
 
 /**
+ * Calculate histogram text for an image buffer
+ */
+async function calculateHistogramText(
+  imageData: Buffer,
+  displayIndex: number,
+  verbose: boolean,
+): Promise<string> {
+  try {
+    const histogram = await calculateHistogramFromBuffer(imageData);
+    const analysis = analyzeHistogram(histogram);
+    const histogramText = formatHistogramForLLM(histogram, analysis);
+
+    if (verbose) {
+      console.log(
+        `Histogram analysis completed for generation ${String(displayIndex)}`,
+      );
+    }
+    return histogramText;
+  } catch (histogramError) {
+    if (verbose) {
+      console.warn(
+        `Failed to calculate histogram for generation ${String(displayIndex)}:`,
+        histogramError,
+      );
+    }
+    return "";
+  }
+}
+
+/**
+ * Process a single generation result
+ */
+async function processGenerationResult(
+  result: GenerationResult,
+  displayIndex: number,
+  verbose: boolean,
+): Promise<{ text: string; image: Buffer } | null> {
+  try {
+    const imageData = await fs.promises.readFile(result.evaluationImagePath);
+    const histogramText = await calculateHistogramText(
+      imageData,
+      displayIndex,
+      verbose,
+    );
+
+    const generationText = histogramText
+      ? `\n\nGeneration ${String(displayIndex)}:\n${histogramText}`
+      : `\n\nGeneration ${String(displayIndex)}:`;
+
+    return { text: generationText, image: imageData };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Unknown error reading evaluation image";
+
+    if (verbose) {
+      console.warn(
+        `Failed to read evaluation image ${result.evaluationImagePath}:`,
+        errorMessage,
+      );
+    }
+    result.success = false;
+    return null;
+  }
+}
+
+/**
  * Prepares image contents for evaluation
  */
 export async function prepareImageContents(
@@ -219,55 +290,21 @@ export async function prepareImageContents(
     );
   }
 
-  // Create a mapping for display indices (1-based) that skips failed generations
+  // Process each successful result
   let displayIndex = 1;
-
   for (const result of successfulResults) {
-    try {
-      const imageData = await fs.promises.readFile(result.evaluationImagePath);
-      
-      // Calculate histogram for evaluation image
-      let histogramText = "";
-      try {
-        const histogram = await calculateHistogramFromBuffer(imageData);
-        const analysis = analyzeHistogram(histogram);
-        histogramText = formatHistogramForLLM(histogram, analysis);
-        
-        if (verbose) {
-          console.log(`Histogram analysis completed for generation ${displayIndex}`);
-        }
-      } catch (histogramError) {
-        if (verbose) {
-          console.warn(`Failed to calculate histogram for generation ${displayIndex}:`, histogramError);
-        }
-        // Continue without histogram data if calculation fails
-      }
+    const processed = await processGenerationResult(
+      result,
+      displayIndex,
+      verbose,
+    );
 
-      // Add generation with histogram analysis
-      const generationText = histogramText 
-        ? `\n\nGeneration ${String(displayIndex)}:\n${histogramText}`
-        : `\n\nGeneration ${String(displayIndex)}:`;
-        
+    if (processed) {
       imageContents.push(
-        { type: "text", text: generationText },
-        { type: "image", image: imageData },
+        { type: "text", text: processed.text },
+        { type: "image", image: processed.image },
       );
       displayIndex++;
-    } catch (error) {
-      // Safe error handling
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Unknown error reading evaluation image";
-
-      if (verbose) {
-        console.warn(
-          `Failed to read evaluation image ${result.evaluationImagePath}:`,
-          errorMessage,
-        );
-      }
-      // Mark this generation as failed since we couldn't read its image
-      result.success = false;
     }
   }
 

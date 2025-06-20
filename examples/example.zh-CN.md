@@ -15,7 +15,6 @@
 ```plaintext
 /1
   ├── IMG_0080.CR2
-  ├── IMG_0080.CR2.pp3
   ├── ai.pp3
   ├── ai.jpg
   └── ai.sh
