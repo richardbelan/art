@@ -281,16 +281,13 @@ export async function generateMultiplePP3Profiles(
   }
 
   // Use AI to evaluate and select the best result
-  const { bestIndex, evaluationReason } = await evaluateGenerations(
+  const { winningGeneration, evaluationReason } = await evaluateGenerations(
     generationResults,
     providerName,
     visionModel,
     maxRetries,
     verbose,
   );
-
-  // Get the winning generation
-  const winningGeneration = successfulGenerations[bestIndex];
 
   // Extract model name from the pp3Path if it was generated with multiple models
   let modelSuffix = "";
@@ -320,7 +317,7 @@ export async function generateMultiplePP3Profiles(
   await convertDngToImageWithPP3({
     input: inputPath,
     output: finalOutputPath,
-    pp3Path: generationResults[bestIndex].pp3Path,
+    pp3Path: winningGeneration.pp3Path,
     format: outputFormat,
     quality: outputQuality,
     tiffCompression,
@@ -332,10 +329,10 @@ export async function generateMultiplePP3Profiles(
   }
 
   // Update the winning generation's processedImagePath to point to the final output
-  generationResults[bestIndex].processedImagePath = finalOutputPath;
+  winningGeneration.processedImagePath = finalOutputPath;
 
   return {
-    bestResult: generationResults[bestIndex],
+    bestResult: winningGeneration,
     allResults: generationResults,
     evaluationReason,
     finalOutputPath,

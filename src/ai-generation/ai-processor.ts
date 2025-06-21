@@ -269,7 +269,7 @@ async function processGenerationResult(
  * Prepares image contents for evaluation
  */
 export async function prepareImageContents(
-  generationResults: GenerationResult[],
+  successfulGenerationResults: GenerationResult[],
   verbose: boolean,
 ): Promise<
   ({ type: "text"; text: string } | { type: "image"; image: Buffer })[]
@@ -279,20 +279,9 @@ export async function prepareImageContents(
     | { type: "image"; image: Buffer }
   )[] = [{ type: "text", text: EVALUATION_PROMPT }];
 
-  // Filter out failed generations
-  const successfulResults = generationResults.filter(
-    (result) => result.success,
-  );
-
-  if (verbose && successfulResults.length < generationResults.length) {
-    console.log(
-      `Skipping ${String(generationResults.length - successfulResults.length)} failed generations in evaluation`,
-    );
-  }
-
   // Process each successful result
   let displayIndex = 1;
-  for (const result of successfulResults) {
+  for (const result of successfulGenerationResults) {
     const processed = await processGenerationResult(
       result,
       displayIndex,
@@ -312,81 +301,45 @@ export async function prepareImageContents(
 }
 
 /**
- * Parses the best generation index from AI response
+ * Parses the best generation from AI response
  */
-export function parseBestGenerationIndex(
+export function parseBestGenerationIndexAmongSuccessfuls(
   responseText: string,
-  generationResults: GenerationResult[],
 ): number {
   const bestGenerationMatch = /BEST_GENERATION:\s*(\d+)/i.exec(responseText);
 
-  if (!bestGenerationMatch) {
-    // Default to the first successful generation if no match
-    const firstSuccessfulIndex = generationResults.findIndex(
-      (result) => result.success,
-    );
-    return Math.max(firstSuccessfulIndex, 0);
-  }
-
   // Get the display index (1-based) from the AI response
-  const displayIndex = Number.parseInt(bestGenerationMatch[1], 10);
-
-  // Create a mapping from display indices to actual indices
-  const successfulResults = generationResults.filter(
-    (result) => result.success,
-  );
-  const displayToActualMap = new Map<number, number>();
-
-  let currentDisplayIndex = 1;
-  for (const result of successfulResults) {
-    displayToActualMap.set(currentDisplayIndex, result.generationIndex);
-    currentDisplayIndex++;
-  }
-
-  // Get the actual index from the map, or default to the first successful one
-  const actualIndex = displayToActualMap.get(displayIndex);
-  if (actualIndex !== undefined) {
-    return actualIndex;
-  }
-
-  // Fallback to the first successful generation
-  const firstSuccessfulIndex = generationResults.findIndex(
-    (result) => result.success,
-  );
-  return Math.max(firstSuccessfulIndex, 0);
-}
-
-/**
- * Handles the case when there's only one successful generation
- */
-function handleSingleGeneration(
-  successfulResults: GenerationResult[],
-  generationResults: GenerationResult[],
-): { bestIndex: number; evaluationReason: string } {
-  const originalIndex = generationResults.indexOf(successfulResults[0]);
-  return {
-    bestIndex: originalIndex,
-    evaluationReason: "Only one successful generation available",
-  };
+  return Math.max(0, Number.parseInt(bestGenerationMatch?.[1] ?? "1", 10) - 1);
 }
 
 /**
  * Attempts to evaluate generations with a specific model
  */
-async function attemptEvaluationWithModel(
-  model: string,
-  modelIndex: number,
-  models: string[],
-  providerName: string,
+async function attemptEvaluationWithModel({
+  model,
+  modelIndex,
+  models,
+  providerName,
+  imageContents,
+  maxRetries,
+  successfulResults,
+  verbose,
+}: {
+  model: string;
+  modelIndex: number;
+  models: string[];
+  providerName: string;
   imageContents: (
     | { type: "text"; text: string }
     | { type: "image"; image: Buffer }
-  )[],
-  maxRetries: number,
-  successfulResults: GenerationResult[],
-  generationResults: GenerationResult[],
-  verbose: boolean,
-): Promise<{ bestIndex: number; evaluationReason: string } | null> {
+  )[];
+  maxRetries: number;
+  successfulResults: GenerationResult[];
+  verbose: boolean;
+}): Promise<{
+  winningGeneration: GenerationResult;
+  evaluationReason: string;
+} | null> {
   if (verbose && models.length > 1) {
     console.log(
       `Attempting evaluation with model ${model} (${String(modelIndex + 1)}/${String(models.length)})...`,
@@ -408,27 +361,20 @@ async function attemptEvaluationWithModel(
 
     const responseText =
       typeof response === "string" ? response : response.text;
-    const bestIndex = parseBestGenerationIndex(responseText, successfulResults);
-
-    // Map the best index from the successful results array back to the original array
-    const originalIndex = generationResults.findIndex(
-      (result) =>
-        result.generationIndex === successfulResults[bestIndex].generationIndex,
-    );
-
-    const finalIndex = originalIndex === -1 ? bestIndex : originalIndex;
+    const bestIndex = parseBestGenerationIndexAmongSuccessfuls(responseText);
 
     if (verbose) {
-      console.log(
-        `AI selected generation ${String(successfulResults[bestIndex].generationIndex + 1)} as the best`,
-      );
       console.log("\n=== COMPLETE AI EVALUATION RESPONSE ===");
       console.log(responseText);
       console.log("=== END OF AI EVALUATION RESPONSE ===\n");
+
+      console.log(
+        `AI selected generation ${String(successfulResults[bestIndex].generationIndex + 1)} as the best`,
+      );
     }
 
     return {
-      bestIndex: finalIndex,
+      winningGeneration: successfulResults[bestIndex],
       evaluationReason: responseText,
     };
   } catch {
@@ -441,10 +387,10 @@ async function attemptEvaluationWithModel(
  * Handles the fallback case when all models fail
  */
 function handleAllModelsFailed(
-  generationResults: GenerationResult[],
+  successfulGenerationResults: GenerationResult[],
   lastError: unknown,
   verbose: boolean,
-): { bestIndex: number; evaluationReason: string } {
+): { winningGeneration: GenerationResult; evaluationReason: string } {
   if (verbose) {
     console.warn(
       "All AI evaluation models failed, using first generation as fallback:",
@@ -452,13 +398,8 @@ function handleAllModelsFailed(
     );
   }
 
-  // Find the index of the first successful generation in the original array
-  const firstSuccessfulIndex = generationResults.findIndex(
-    (result) => result.success,
-  );
-
   return {
-    bestIndex: Math.max(firstSuccessfulIndex, 0),
+    winningGeneration: successfulGenerationResults[0],
     evaluationReason: `AI evaluation failed: ${lastError instanceof Error ? lastError.message : "Unknown error"}. Using first successful generation as fallback.`,
   };
 }
@@ -473,7 +414,7 @@ export async function evaluateGenerations(
   visionModel: string | string[],
   maxRetries: number,
   verbose: boolean,
-): Promise<{ bestIndex: number; evaluationReason: string }> {
+): Promise<{ winningGeneration: GenerationResult; evaluationReason: string }> {
   // Filter out failed generations
   const successfulResults = generationResults.filter(
     (result) => result.success,
@@ -484,7 +425,10 @@ export async function evaluateGenerations(
   }
 
   if (successfulResults.length === 1) {
-    return handleSingleGeneration(successfulResults, generationResults);
+    return {
+      winningGeneration: successfulResults[0],
+      evaluationReason: "Only one successful generation available",
+    };
   }
 
   // Only pass successful generations to prepareImageContents
@@ -504,17 +448,16 @@ export async function evaluateGenerations(
   for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
     const currentModel = models[modelIndex];
 
-    const result = await attemptEvaluationWithModel(
-      currentModel,
+    const result = await attemptEvaluationWithModel({
+      model: currentModel,
       modelIndex,
       models,
       providerName,
       imageContents,
       maxRetries,
       successfulResults,
-      generationResults,
       verbose,
-    );
+    });
 
     if (result) {
       return result;

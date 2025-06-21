@@ -40,10 +40,11 @@ export {
 export {
   generateAIResponse,
   processAIGeneration,
-  prepareImageContents,
-  parseBestGenerationIndex,
   evaluateGenerations,
 } from "./ai-generation/ai-processor.js";
+
+// Import search/replace functionality
+import { processAIGeneration } from "./ai-generation/ai-processor.js";
 
 // Re-export generation helpers
 export {
@@ -53,9 +54,6 @@ export {
   logSingleGenerationAnalysis,
   generateMultiplePP3Profiles,
 } from "./ai-generation/generation-helpers.js";
-
-// Import search/replace functionality
-import { processAIGeneration } from "./ai-generation/ai-processor.js";
 import {
   setupPreviewAndValidation,
   cleanupPreviewFiles,
