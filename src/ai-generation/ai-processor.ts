@@ -115,17 +115,27 @@ export async function generateAIResponse(
 /**
  * Processes AI generation for PP3 content
  */
-export async function processAIGeneration(
-  previewPath: string,
-  basePP3Path: string,
-  sections: string[],
-  providerName: string,
-  visionModel: string | string[],
-  prompt: string | undefined,
-  preset: string,
-  maxRetries: number,
-  verbose: boolean,
-): Promise<string> {
+export async function processAIGeneration({
+  previewPath,
+  basePP3Path,
+  sections,
+  providerName,
+  visionModel,
+  prompt,
+  preset,
+  maxRetries,
+  verbose,
+}: {
+  previewPath: string;
+  basePP3Path: string;
+  sections: string[];
+  providerName: string;
+  visionModel: string | string[];
+  prompt: string | undefined;
+  preset: string;
+  maxRetries: number;
+  verbose: boolean;
+}): Promise<string> {
   const imageData = await readImageData(previewPath, verbose);
   const basePP3Content = await readBasePP3Content(basePP3Path, verbose);
 
@@ -134,7 +144,8 @@ export async function processAIGeneration(
 
   const aiProvider = handleProviderSetup(providerName, visionModel);
   const toBeEdited = includedSections.join("\n");
-  const promptText = prompt ?? getPromptByPreset(preset);
+
+  const promptText = prompt ?? getPromptByPreset(preset, sections);
   const extractedText = `${promptText}\n\n${toBeEdited}`;
 
   // Detailed logging is now handled inside generateAIResponse

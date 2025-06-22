@@ -6,15 +6,15 @@ ColorLabel=0
 InTrash=false
 [Exposure]
 Auto=false
-Clip=0.15
-Compensation=0.8
+Clip=0.02
+Compensation=0.7
 Brightness=0
-Contrast=20
+Contrast=0
 Saturation=0
-Black=-2000
+Black=0
 HighlightCompr=0
 HighlightComprThreshold=0
-ShadowCompr=60
+ShadowCompr=50
 HistogramMatching=false
 CurveFromHistogramMatching=false
 ClampOOG=true
@@ -62,10 +62,10 @@ TransmissionCurve=1;0;0.5;0.34999999999999998;0.34999999999999998;0.599999999999
 GainTransmissionCurve=1;0;0.10000000000000001;0.34999999999999998;0;0.25;0.25;0.34999999999999998;0.34999999999999998;0.69999999999999996;0.25;0.34999999999999998;0.34999999999999998;1;0.10000000000000001;0;0;
 [Local Contrast]
 Enabled=true
-Radius=50
+Radius=60
 Amount=0.8
-Darkness=1.2
-Lightness=1.2
+Darkness=1
+Lightness=1
 [Channel Mixer]
 Enabled=false
 Red=1000;0;0;
@@ -113,12 +113,12 @@ hhCurve=0;
 LcCurve=0;
 ClCurve=0;
 [Sharpening]
-Enabled=false
+Enabled=true
 Contrast=20
 Method=usm
-Radius=0.5
+Radius=0.7
 BlurRadius=0.20000000000000001
-Amount=200
+Amount=250
 Threshold=20;80;2000;1200;
 OnlyEdges=false
 EdgedetectionRadius=1.8999999999999999
@@ -218,11 +218,11 @@ Radius=2
 Threshold=13
 HueCurve=1;0.16666666699999999;0;0.34999999999999998;0.34999999999999998;0.34699999999999998;0;0.34999999999999998;0.34999999999999998;0.51366742600000004;0;0.34999999999999998;0.34999999999999998;0.66894457100000004;0;0.34999999999999998;0.34999999999999998;0.82877752459999998;0.97835991;0.34999999999999998;0.34999999999999998;0.99088838270000001;0;0.34999999999999998;0.34999999999999998;
 [Dehaze]
-Enabled=true
-Strength=30
+Enabled=false
+Strength=50
 ShowDepthMap=false
-Depth=50
-Saturation=20
+Depth=25
+Saturation=50
 [Directional Pyramid Denoising]
 Enabled=false
 Enhance=false
@@ -259,11 +259,11 @@ Amount=20
 Anchor=50
 [Shadows & Highlights]
 Enabled=true
-Highlights=0
+Highlights=-20
 HighlightTonalWidth=70
 Shadows=30
-ShadowTonalWidth=50
-Radius=40
+ShadowTonalWidth=40
+Radius=50
 Lab=false
 [ToneEqualizer]
 Enabled=false

@@ -73,17 +73,17 @@ export async function generateSinglePP3Profile(
   isMultiModel: boolean,
 ): Promise<GenerationResult | null> {
   try {
-    const pp3Content = await processAIGeneration(
+    const pp3Content = await processAIGeneration({
       previewPath,
       basePP3Path,
       sections,
       providerName,
-      currentModel,
+      visionModel: currentModel,
       prompt,
       preset,
       maxRetries,
       verbose,
-    );
+    });
 
     // Create file names with model info if using multiple models
     const modelSuffix = isMultiModel

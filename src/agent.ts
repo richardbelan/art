@@ -78,9 +78,7 @@ export async function generateMultiPP3FromRawImage({
   preset = "aggressive",
   sections = [
     "Exposure",
-    "Retinex",
     "Local Contrast",
-    "Wavlet",
     "Vibrance",
     "White Balance",
     "Color appearance",
@@ -89,9 +87,9 @@ export async function generateMultiPP3FromRawImage({
     "ColorToning",
     "ToneEqualizer",
     "Sharpening",
-    "Defringing",
     "Dehaze",
     "Directional Pyramid Denoising",
+    "Channel Mixer",
   ],
   previewQuality = PREVIEW_SETTINGS.quality,
   previewFormat = "jpeg",
@@ -198,9 +196,7 @@ export async function generatePP3FromRawImage({
   preset = "aggressive",
   sections = [
     "Exposure",
-    "Retinex",
     "Local Contrast",
-    "Wavlet",
     "Vibrance",
     "White Balance",
     "Color appearance",
@@ -209,9 +205,9 @@ export async function generatePP3FromRawImage({
     "ColorToning",
     "ToneEqualizer",
     "Sharpening",
-    "Defringing",
     "Dehaze",
     "Directional Pyramid Denoising",
+    "Channel Mixer",
   ],
   previewQuality = PREVIEW_SETTINGS.quality,
   previewFormat = "jpeg",
@@ -240,9 +236,9 @@ export async function generatePP3FromRawImage({
     );
     previewCreated = setup.previewCreated;
 
-    return await processAIGeneration(
+    return await processAIGeneration({
       previewPath,
-      setup.finalBasePP3Path,
+      basePP3Path: setup.finalBasePP3Path,
       sections,
       providerName,
       visionModel,
@@ -250,7 +246,7 @@ export async function generatePP3FromRawImage({
       preset,
       maxRetries,
       verbose,
-    );
+    });
   } catch (error: unknown) {
     if (error instanceof Error) {
       if (verbose) {
