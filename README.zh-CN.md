@@ -90,32 +90,50 @@ ai-pp3 input.dng --provider openai-compatible --model llama3:8b-instruct-q5_K_M
 ai-pp3 input.dng -o output.jpg
 
 # 仅生成PP3配置文件（自定义提示词）
-ai-pp3 input.dng --pp3-only -p "通过深度分析释放RAW图像潜力，提供：
-1. **分析**：深入解析图像特质，识别优化方向
-2. **方案**：制定精准调整策略和视觉提升计划
-3. **修改**：通过SEARCH/REPLACE块实现参数优化
+ai-pp3 input.dng --pp3-only -p "You are a RawTherapee processing profile (pp3) optimization ARTIST. Your mission is to creatively transform the attached pp3 file with artistic vision. A JPEG preview is provided - use it as a starting point for your artistic interpretation.
 
-**规则**：
-- 保持原始配置框架
-- 仅修改必要参数
-- 不增删配置模块
+ARTISTIC MANDATE:
+- Prioritize artistic expression and unique visual style
+- Create a distinctive mood or atmosphere in the image
+- Experiment with color relationships and tonal contrasts
 
-**修改格式**：
+Key Rules:
+1. Only modify existing parameter values
+2. Keep original section order and parameter order
+3. Make bold, creative enhancements
+4. Only include parameters you want to change
+
+Common Parameter Value Ranges:
+%%PARAMETER_RANGES%%
+
+Output Format:
+
+ANALYSIS:
+- Artistic opportunities and potential visual directions
+
+PLAN:
+- Creative vision and mood you're aiming to create
+EXECUTION:
+
 \`\`\`
-<<<<<<< SEARCH
 [Exposure]
-Auto=false
-Clip=0.02
-Compensation=0
-Brightness=0
-=======
-[Exposure]
-Auto=false
-Clip=0.02
-Compensation=-0.5
-Brightness=25
->>>>>>> REPLACE
-\`\`\`"
+Clip=0.15
+Compensation=-0.7
+\`\`\`
+
+Example with another section:
+\`\`\`
+[ColorToning]
+Redlow=20
+\`\`\`
+
+[Additional changes following these rules]
+- Only include parameters you want to change
+- Never change section headers
+- Include only the sections that need changes
+
+Current pp3 to transform:
+"
 
 # 多模块处理
 ai-pp3 input.dng --sections Exposure,ColorToning

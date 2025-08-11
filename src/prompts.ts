@@ -289,7 +289,6 @@ ${COMMON_KEY_RULES.replace("Make bold, creative enhancements", "Focus on creativ
 
 Common Parameter Value Ranges:
 %%PARAMETER_RANGES%%
-${COLOR_TONING_RANGES}
 
 Output Format:
 
@@ -330,7 +329,7 @@ export function getPromptByPreset(
   };
 
   // Get the template or fall back to aggressive
-  let prompt = promptTemplates[preset] || AGGRESSIVE_PROMPT_TEMPLATE;
+  let prompt = promptTemplates[preset] || preset;
 
   // If sections are provided, insert the relevant parameter ranges
   if (sections?.length) {

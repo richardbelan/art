@@ -1,4 +1,4 @@
-import { LanguageModelV1 } from "ai";
+import { LanguageModel } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { openaiCompatible } from "./providers/openai-compatible.js";
 import { anthropic } from "@ai-sdk/anthropic";
@@ -29,7 +29,7 @@ const AVAILABLE_PROVIDERS = [
 
 type ProviderName = (typeof AVAILABLE_PROVIDERS)[number];
 
-export function provider(p: string): (modelName: string) => LanguageModelV1 {
+export function provider(p: string): (modelName: string) => LanguageModel {
   switch (p as ProviderName) {
     case "openai": {
       return openai;

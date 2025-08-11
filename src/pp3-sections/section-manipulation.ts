@@ -1,6 +1,7 @@
 // Section manipulation functionality extracted from agent.ts
 import { SectionChange } from "../pp3-parser.js";
 import { splitContentIntoSections } from "./section-parser.js";
+import camelcase from "camelcase";
 
 /**
  * Creates a map of section names to section content
@@ -74,7 +75,13 @@ export function applyParameterChanges(
       parameterRegex.test(line),
     );
 
-    if (parameterLineIndex !== -1) {
+    const indexOfAssignment = parameterLine.indexOf("=");
+
+    if (
+      parameterLineIndex !== -1 &&
+      camelcase(updatedLines[parameterLineIndex].slice(indexOfAssignment)) !==
+        camelcase(parameterLine).slice(indexOfAssignment)
+    ) {
       // Replace the parameter line
       updatedLines[parameterLineIndex] = parameterLine;
 

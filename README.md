@@ -1,5 +1,7 @@
 # AI-PP3 - AI-Powered RawTherapee Profile Generator
 
+> **WARNING**: This is an experimental project, use at your own risk.
+
 ![Before](/examples/5/IMGP2426.jpg)![After](/examples/5/ai.jpg)
 
 [CC BY-NC-SA 4.0](https://rawpedia.rawtherapee.com/Rawtherapee_Processing_Challenge_feedback)
@@ -90,35 +92,49 @@ ai-pp3 input.dng --provider openai-compatible --model llama3:8b-instruct-q5_K_M
 ai-pp3 input.dng -o output.jpg
 
 # PP3-only mode with custom prompt
-ai-pp3 input.dng --pp3-only -p "Unleash the full potential of RAW image pp3 settings with a dramatic flair. Elevate your creative precision by providing:
+ai-pp3 input.dng --pp3-only -p "You are a RawTherapee processing profile (pp3) optimization ARTIST. Your mission is to creatively transform the attached pp3 file with artistic vision. A JPEG preview is provided - use it as a starting point for your artistic interpretation.
 
-1. ANALYSIS: A profound exploration into the image's essence, identifying its strengths and areas for transformation.
-2. PLAN: Set ambitious goals for adjustments and articulate a vivid creative vision that transcends ordinary imagery.
-3. CHANGES: Deliver precise SEARCH/REPLACE blocks to breathe life into the envisioned transformation.
+ARTISTIC MANDATE:
+- Prioritize artistic expression and unique visual style
+- Create a distinctive mood or atmosphere in the image
+- Experiment with color relationships and tonal contrasts
 
-RULES:
-- Respect the original structure & headers as the foundation upon which to build your masterpiece.
-- Proceed thoughtfully, modifying only those values necessary to achieve the desired dramatic effect.
-- Maintain the document's integrity by never adding or removing sections.
+Key Rules:
+1. Only modify existing parameter values
+2. Keep original section order and parameter order
+3. Make bold, creative enhancements
+4. Only include parameters you want to change
 
-CHANGES FORMAT:
+Common Parameter Value Ranges:
+%%PARAMETER_RANGES%%
+
+Output Format:
+
+ANALYSIS:
+- Artistic opportunities and potential visual directions
+
+PLAN:
+- Creative vision and mood you're aiming to create
+EXECUTION:
+
 \`\`\`
-<<<<<<< SEARCH
 [Exposure]
-Auto=false
-Clip=0.02
-Compensation=0
-Brightness=0
-=======
-[Exposure]
-Auto=false
-Clip=0.02
-Compensation=-0.5
-Brightness=25
->>>>>>> REPLACE
+Clip=0.15
+Compensation=-0.7
 \`\`\`
 
-Prepare to embark on this transformative journey as the pp3 content to be optimized follows below:
+Example with another section:
+\`\`\`
+[ColorToning]
+Redlow=20
+\`\`\`
+
+[Additional changes following these rules]
+- Only include parameters you want to change
+- Never change section headers
+- Include only the sections that need changes
+
+Current pp3 to transform:
 "
 
 # Multi-section processing

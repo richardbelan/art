@@ -1,5 +1,5 @@
 // AI processing functionality extracted from agent.ts
-import { generateText, LanguageModelV1 } from "ai";
+import { generateText, LanguageModel } from "ai";
 import fs from "node:fs";
 import { handleProviderSetup } from "../utils/ai-provider.js";
 import {
@@ -31,7 +31,7 @@ import {
  * Generates AI response based on image and text
  */
 export async function generateAIResponse(
-  aiProvider: LanguageModelV1,
+  aiProvider: LanguageModel,
   extractedText: string,
   imageData: Buffer,
   maxRetries: number,
@@ -145,7 +145,7 @@ export async function processAIGeneration({
   const aiProvider = handleProviderSetup(providerName, visionModel);
   const toBeEdited = includedSections.join("\n");
 
-  const promptText = prompt ?? getPromptByPreset(preset, sections);
+  const promptText = getPromptByPreset(prompt ?? preset, sections);
   const extractedText = `${promptText}\n\n${toBeEdited}`;
 
   // Detailed logging is now handled inside generateAIResponse
