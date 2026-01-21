@@ -36,3 +36,7 @@ tmp/
 *.tmp
 *.temp
 .aider*
+*.CR2
+*.JPG
+*.pp3
+package-lock.json

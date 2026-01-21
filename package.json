@@ -1,16 +1,63 @@
 {
   "name": "ai-pp3",
-  "version": "2.1.3",
+  "version": "2.2.3",
   "description": "CLI tool combining multimodal AI analysis with RawTherapee's engine to generate optimized PP3 profiles for RAW photography. Features automatic histogram analysis for enhanced AI processing.",
-  "engines": {
-    "node": ">=18"
+  "keywords": [
+    "ai",
+    "multimodal",
+    "raw",
+    "photography",
+    "rawtherapee",
+    "pp3",
+    "image-processing",
+    "cli",
+    "dng",
+    "nef",
+    "cr2",
+    "arw",
+    "computer-vision",
+    "photo-editing",
+    "batch-processing"
+  ],
+  "homepage": "https://github.com/tychenjiajun/art#readme",
+  "bugs": {
+    "url": "https://github.com/tychenjiajun/art/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tychenjiajun/art.git"
+  },
+  "license": "GPL-2.0-only",
+  "author": "Jiajun Chen <tychenjiajun@live.cn> (https://github.com/tychenjiajun)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/agent.d.ts",
+      "import": "./dist/agent.js"
+    },
+    "./provider": {
+      "types": "./dist/provider.d.ts",
+      "import": "./dist/provider.js"
+    },
+    "./raw-therapee-wrap": {
+      "types": "./dist/raw-therapee-wrap.d.ts",
+      "import": "./dist/raw-therapee-wrap.js"
+    }
   },
   "main": "./dist/agent.js",
   "types": "./dist/agent.d.ts",
   "bin": {
-    "ai-pp3": "./dist/bin.js"
+    "ai-pp3": "dist/bin.js"
   },
-  "type": "module",
+  "directories": {
+    "example": "examples"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "postbuild": "chmod +x ./dist/bin.js",
@@ -63,60 +110,13 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.1.5",
     "prettier": "^3.6.2",
+    "ts-node": "^10.9.2",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.39.0",
     "vitest": "^3.2.4"
   },
-  "keywords": [
-    "ai",
-    "multimodal",
-    "raw",
-    "photography",
-    "rawtherapee",
-    "pp3",
-    "image-processing",
-    "cli",
-    "dng",
-    "nef",
-    "cr2",
-    "arw",
-    "computer-vision",
-    "photo-editing",
-    "batch-processing"
-  ],
-  "author": {
-    "name": "Jiajun Chen",
-    "email": "tychenjiajun@live.cn",
-    "url": "https://github.com/tychenjiajun"
+  "engines": {
+    "node": ">=18"
   },
-  "license": "GPL-2.0-only",
-  "packageManager": "pnpm@10.14.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/tychenjiajun/art.git"
-  },
-  "bugs": {
-    "url": "https://github.com/tychenjiajun/art/issues"
-  },
-  "homepage": "https://github.com/tychenjiajun/art#readme",
-  "files": [
-    "dist",
-    "README.md",
-    "README.zh-CN.md",
-    "LICENSE"
-  ],
-  "exports": {
-    ".": {
-      "types": "./dist/agent.d.ts",
-      "import": "./dist/agent.js"
-    },
-    "./provider": {
-      "types": "./dist/provider.d.ts",
-      "import": "./dist/provider.js"
-    },
-    "./raw-therapee-wrap": {
-      "types": "./dist/raw-therapee-wrap.d.ts",
-      "import": "./dist/raw-therapee-wrap.js"
-    }
-  }
+  "packageManager": "pnpm@10.14.0"
 }

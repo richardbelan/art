@@ -93,7 +93,7 @@ export async function generateMultiPP3FromRawImage({
   ],
   previewQuality = PREVIEW_SETTINGS.quality,
   previewFormat = "jpeg",
-  maxRetries = 2,
+  maxRetries = 10,
   generations = 3,
   outputFormat = "jpeg" as ImageFormat,
   outputQuality = 100,
@@ -211,7 +211,7 @@ export async function generatePP3FromRawImage({
   ],
   previewQuality = PREVIEW_SETTINGS.quality,
   previewFormat = "jpeg",
-  maxRetries = 2,
+  maxRetries = 10,
 }: P3GenerationParameters): Promise<string> {
   const extension = inputPath.slice(inputPath.lastIndexOf("."));
   const previewExtension = previewFormat === "png" ? "png" : "jpg";

@@ -1,6 +1,7 @@
 import { LanguageModel } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { openaiCompatible } from "./providers/openai-compatible.js";
+import { lmStudio } from "./providers/lmstudio.js";
 import { anthropic } from "@ai-sdk/anthropic";
 import { google } from "@ai-sdk/google";
 import { xai } from "@ai-sdk/xai";
@@ -25,6 +26,7 @@ const AVAILABLE_PROVIDERS = [
   "fireworks",
   "togetherai",
   "openrouter",
+  "lmstudio"
 ] as const;
 
 type ProviderName = (typeof AVAILABLE_PROVIDERS)[number];
@@ -36,6 +38,9 @@ export function provider(p: string): (modelName: string) => LanguageModel {
     }
     case "openai-compatible": {
       return openaiCompatible;
+    }
+    case "lmstudio": {
+      return lmStudio;
     }
     case "anthropic": {
       return anthropic;
